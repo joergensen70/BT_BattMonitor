@@ -1,0 +1,13 @@
+include ':app'
+
+def localPropertiesFile = new File(rootProject.projectDir, "local.properties")
+def properties = new Properties()
+
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader("UTF-8") { reader -> properties.load(reader) }
+}
+
+// Allow FLUTTER_ROOT env var as fallback (useful in CI)
+def flutterSdkPath = System.getenv("FLUTTER_ROOT") ?: properties.getProperty("flutter.sdk")
+assert flutterSdkPath != null, "Set flutter.sdk in local.properties or export FLUTTER_ROOT"
+apply from: "$flutterSdkPath/packages/flutter_tools/gradle/app_plugin_loader.gradle"
