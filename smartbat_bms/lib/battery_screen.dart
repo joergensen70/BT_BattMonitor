@@ -344,7 +344,7 @@ class _BatteryScreenState extends State<BatteryScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/Odin_Kopf.png', width: 26, height: 26),
+            Image.asset('assets/Odin_Kopf.png', width: 29, height: 26),
             const SizedBox(width: 8),
             const Flexible(
               child: Text('SmartBat BMS',
