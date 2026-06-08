@@ -396,9 +396,17 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             Image.asset('assets/Odin_Kopf.png', width: 40),
             const SizedBox(width: 8),
             const Flexible(
-              child: Text('Odin SmartBat',
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Odin SmartBat',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('v1.1',
+                      style: TextStyle(fontSize: 9, color: Colors.white54)),
+                ],
+              ),
             ),
           ],
         ),
