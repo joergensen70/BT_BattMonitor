@@ -344,7 +344,7 @@ class _BatteryScreenState extends State<BatteryScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/Odin_Kopf.png', width: 33, height: 26),
+            Image.asset('assets/Odin_Kopf.png', width: 40),
             const SizedBox(width: 8),
             const Flexible(
               child: Text('Odin SmartBat',
@@ -397,18 +397,18 @@ class _BatteryScreenState extends State<BatteryScreen> {
   Widget _buildBody() {
     final bothHaveData = (_slotA.data != null) && (_slotB.data != null);
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      padding: const EdgeInsets.fromLTRB(7, 7, 7, 8),
       child: Column(children: [
         _buildBatteryCard(_slotA, 'Battery A',
             _isRefreshingA, (v) => setState(() => _isRefreshingA = v)),
-        if (_slotB.isConnected) const SizedBox(height: 6),
+        if (_slotB.isConnected) const SizedBox(height: 5),
         _buildBatteryCard(_slotB, 'Battery B',
             _isRefreshingB, (v) => setState(() => _isRefreshingB = v)),
         if (bothHaveData) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           _buildSummaryStrip(_slotA.data!, _slotB.data!),
         ],
-        const SizedBox(height: 4),
+        const SizedBox(height: 0),
       ]),
     );
   }
