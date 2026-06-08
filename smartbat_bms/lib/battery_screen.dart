@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -17,14 +17,50 @@ const _kCritical      = Color(0xFFFF5D5D);
 const _kTextPrimary   = Color(0xFFEAF2FF);
 const _kTextSecondary = Color(0xFF9FB0C8);
 
-// Empty placeholder shown when no battery is connected
-const _kEmptyData = BatteryData(
-  voltage: 0, current: 0, remainingAh: 0, nominalAh: 0,
-  cycles: 0, soc: 0, temperatures: [], cellVoltages: [],
-  cellCount: 0, chargeFet: false, dischargeFet: false,
-  protectionStatus: 0,
-);
+// ── Per-battery slot state ────────────────────────────────────────────────────
+class _BattSlot {
+  BluetoothDevice? device;
+  BmsService? service;
+  BatteryData? data;
+  String status = '';
+  DateTime? lastDataAt;
+  List<String> logs = [];
 
+  StreamSubscription? dataSub;
+  StreamSubscription? connSub;
+  StreamSubscription<String>? statusSub;
+  StreamSubscription<String>? logSub;
+
+  bool get isConnected => device != null;
+  bool get hasData => data != null || lastDataAt != null;
+
+  /// Synchronous cancel — safe to call from dispose().
+  void cancelAll() {
+    dataSub?.cancel(); dataSub = null;
+    connSub?.cancel(); connSub = null;
+    statusSub?.cancel(); statusSub = null;
+    logSub?.cancel(); logSub = null;
+    service?.dispose();
+    service = null;
+  }
+
+  /// Full async teardown — resets all state including device reference.
+  Future<void> teardown() async {
+    dataSub?.cancel(); dataSub = null;
+    connSub?.cancel(); connSub = null;
+    statusSub?.cancel(); statusSub = null;
+    logSub?.cancel(); logSub = null;
+    await service?.disconnect();
+    service = null;
+    device = null;
+    data = null;
+    lastDataAt = null;
+    status = '';
+    logs.clear();
+  }
+}
+
+// ── Main widget ───────────────────────────────────────────────────────────────
 class BatteryScreen extends StatefulWidget {
   const BatteryScreen({super.key});
 
@@ -33,137 +69,182 @@ class BatteryScreen extends StatefulWidget {
 }
 
 class _BatteryScreenState extends State<BatteryScreen> {
-  BluetoothDevice? _device;
-  BmsService? _service;
-  BatteryData? _data;
-  String _status = '';
-  StreamSubscription? _dataSub;
-  StreamSubscription? _connSub;
-  StreamSubscription<String>? _statusSub;
-  StreamSubscription<String>? _logSub;
-  final List<String> _logs = [];
-  DateTime? _lastDataAt;
-  bool _isRefreshing = false;
+  final _slotA = _BattSlot();
+  final _slotB = _BattSlot();
   bool _disposed = false;
+  bool _isRefreshingA = false;
+  bool _isRefreshingB = false;
   static const int _maxRetries = 5;
   static const Duration _retryDelay = Duration(seconds: 2);
 
-  bool get _isConnected => _device != null;
-  bool get _hasReceivedData => _data != null || _lastDataAt != null;
+  bool get _anyConnected => _slotA.isConnected || _slotB.isConnected;
 
   @override
   void initState() {
     super.initState();
-    // No auto-connect on start — wait for user to pick a device.
   }
 
-  Future<void> _openScanSheet() async {
+  @override
+  void dispose() {
+    _disposed = true;
+    _slotA.cancelAll();
+    _slotB.cancelAll();
+    super.dispose();
+  }
+
+  // ── Scan & connect ──────────────────────────────────────────────────────────
+
+  Future<void> _openScanPicker() async {
+    final slotChoice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: _kSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                    color: _kTextSecondary.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+              const Text('Select slot to connect',
+                  style: TextStyle(
+                      color: _kTextPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16)),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: _slotButton('Battery A', 'A',
+                    _slotA.isConnected ? _slotA.device!.platformName : null)),
+                const SizedBox(width: 12),
+                Expanded(child: _slotButton('Battery B', 'B',
+                    _slotB.isConnected ? _slotB.device!.platformName : null)),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (slotChoice == null || !mounted) return;
+
     final device = await Navigator.push<BluetoothDevice>(
       context,
       MaterialPageRoute(builder: (_) => const ScanScreen()),
     );
-    if (device != null && mounted) {
-      await _teardown();
-      setState(() {
-        _device = device;
-        _data = null;
-        _lastDataAt = null;
-        _logs.clear();
-        _status = 'Connecting…';
-      });
-      _service = BmsService();
-      _attachServiceStreams();
-      _connect();
-    }
+    if (device == null || !mounted) return;
+
+    final slot = slotChoice == 'A' ? _slotA : _slotB;
+    await slot.teardown();
+    if (!mounted) return;
+    setState(() { slot.status = 'Connecting…'; slot.device = device; });
+    slot.service = BmsService();
+    _attachStreams(slot);
+    _connect(slot);
   }
 
-  void _attachServiceStreams() {
-    _statusSub?.cancel();
-    _logSub?.cancel();
-    _statusSub = _service!.statusStream.listen((status) {
+  Widget _slotButton(String label, String value, String? currentName) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _kSurfaceElev,
+        foregroundColor: _kTextPrimary,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      onPressed: () => Navigator.pop(context, value),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(label,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        if (currentName != null) ...[
+          const SizedBox(height: 4),
+          Text(currentName,
+              style: const TextStyle(fontSize: 11, color: _kAccent),
+              overflow: TextOverflow.ellipsis),
+        ] else
+          const Text('— empty —',
+              style: TextStyle(fontSize: 11, color: _kTextSecondary)),
+      ]),
+    );
+  }
+
+  void _attachStreams(_BattSlot slot) {
+    slot.statusSub?.cancel();
+    slot.logSub?.cancel();
+    slot.statusSub = slot.service!.statusStream.listen((s) {
       if (!mounted) return;
       setState(() {
-        if (_hasReceivedData) {
-          final lower = status.toLowerCase();
-          if (lower.contains('connecting') ||
-              lower.contains('connected') ||
-              lower.contains('discovering') ||
-              lower.contains('waiting')) return;
+        if (slot.hasData) {
+          final l = s.toLowerCase();
+          if (l.contains('connecting') || l.contains('connected') ||
+              l.contains('discovering') || l.contains('waiting')) return;
         }
-        _status = status;
+        slot.status = s;
       });
     });
-    _logSub = _service!.debugStream.listen((line) {
+    slot.logSub = slot.service!.debugStream.listen((line) {
       if (!mounted) return;
       setState(() {
-        _logs.insert(0, '${_timeLabel(DateTime.now())}  $line');
-        if (_logs.length > 40) _logs.removeRange(40, _logs.length);
-        if (!_hasReceivedData && line.startsWith('RX ')) {
-          _status = 'Connected – receiving raw data…';
+        final ts = _timeLabel(DateTime.now());
+        slot.logs.insert(0, '$ts  $line');
+        if (slot.logs.length > 40) slot.logs.removeRange(40, slot.logs.length);
+        if (!slot.hasData && line.startsWith('RX ')) {
+          slot.status = 'Connected – receiving…';
         }
       });
     });
   }
 
-  Future<void> _connect() async {
-    if (_device == null || _service == null) return;
-    _dataSub?.cancel();
-    _connSub?.cancel();
-    _connSub = _device!.connectionState.listen((state) {
+  Future<void> _connect(_BattSlot slot) async {
+    slot.dataSub?.cancel();
+    slot.connSub?.cancel();
+    slot.connSub = slot.device!.connectionState.listen((state) {
       if (mounted && state == BluetoothConnectionState.disconnected && !_disposed) {
-        setState(() => _status = 'Disconnected');
+        setState(() => slot.status = 'Disconnected');
       }
     });
-    _dataSub = _service!.dataStream.listen((data) {
-      if (mounted) setState(() { _data = data; _lastDataAt = DateTime.now(); _status = 'Data received'; });
+    slot.dataSub = slot.service!.dataStream.listen((d) {
+      if (mounted) setState(() {
+        slot.data = d;
+        slot.lastDataAt = DateTime.now();
+        slot.status = 'Data received';
+      });
     });
 
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {
       if (_disposed || !mounted) return;
       try {
         if (attempt > 1) {
-          if (mounted) setState(() => _status = 'Retrying ($attempt/$_maxRetries)…');
+          if (mounted) setState(() => slot.status = 'Retrying ($attempt/$_maxRetries)…');
           await Future.delayed(_retryDelay);
           if (_disposed || !mounted) return;
-          await _service!.disconnect();
+          await slot.service!.disconnect();
           await Future.delayed(const Duration(milliseconds: 500));
           if (_disposed || !mounted) return;
         }
-        await _service!.connect(_device!);
-        if (mounted && !_hasReceivedData) setState(() => _status = 'Connected – waiting for data…');
+        await slot.service!.connect(slot.device!);
+        if (mounted && !slot.hasData) setState(() => slot.status = 'Connected – waiting…');
         return;
       } catch (e) {
         if (_disposed || !mounted) return;
-        setState(() => _status = attempt == _maxRetries
-            ? 'Connection failed after $_maxRetries attempts'
+        setState(() => slot.status = attempt == _maxRetries
+            ? 'Failed after $_maxRetries attempts'
             : 'Attempt $attempt failed, retrying…');
       }
     }
   }
 
-  Future<void> _teardown() async {
-    _dataSub?.cancel(); _dataSub = null;
-    _connSub?.cancel(); _connSub = null;
-    _statusSub?.cancel(); _statusSub = null;
-    _logSub?.cancel(); _logSub = null;
-    await _service?.disconnect();
-    _service = null;
-    _device = null;
+  Future<void> _disconnectSlot(_BattSlot slot) async {
+    await slot.teardown();
+    if (mounted) setState(() {});
   }
 
-  Future<void> _disconnect() async {
-    await _teardown();
-    if (mounted) setState(() { _data = null; _lastDataAt = null; _status = ''; _logs.clear(); });
-  }
-
-  Future<void> _refresh() async {
-    if (_isRefreshing || _service == null) return;
-    setState(() => _isRefreshing = true);
-    try {
-      await _service!.requestSnapshot();
-    } finally {
-      if (mounted) setState(() => _isRefreshing = false);
-    }
+  Future<void> _refreshSlot(_BattSlot slot) async {
+    await slot.service?.requestSnapshot();
   }
 
   String _timeLabel(DateTime value) {
@@ -172,24 +253,10 @@ class _BatteryScreenState extends State<BatteryScreen> {
     final ss = value.second.toString().padLeft(2, '0');
     return '$hh:$mm:$ss';
   }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    _dataSub?.cancel();
-    _connSub?.cancel();
-    _statusSub?.cancel();
-    _logSub?.cancel();
-    _service?.dispose();
-    super.dispose();
-  }
+  // â”€â”€ Build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   Widget build(BuildContext context) {
-    final name = _device?.platformName.isNotEmpty == true
-        ? _device!.platformName
-        : _isConnected ? 'Battery' : 'SmartBat BMS';
-    final displayData = _data ?? _kEmptyData;
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -198,133 +265,401 @@ class _BatteryScreenState extends State<BatteryScreen> {
           children: [
             Image.asset('assets/Odin_Kopf.png', width: 26, height: 26),
             const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                name,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+            const Flexible(
+              child: Text('SmartBat BMS',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
         backgroundColor: _kSurface,
         foregroundColor: _kTextPrimary,
         actions: [
-          if (_isConnected) IconButton(
-            icon: _isRefreshing
-                ? const SizedBox(width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.refresh),
-            tooltip: 'Request data',
-            onPressed: _isRefreshing ? null : _refresh,
-          ),
           IconButton(
             icon: const Icon(Icons.bluetooth_searching),
-            tooltip: 'Select battery',
-            onPressed: _openScanSheet,
-          ),
-          if (_isConnected) IconButton(
-            icon: const Icon(Icons.info_outline),
-            tooltip: 'Connection info',
-            onPressed: () => _showInfoSheet(context),
-          ),
-          if (_isConnected) IconButton(
-            icon: const Icon(Icons.bluetooth_disabled, color: _kCritical),
-            tooltip: 'Disconnect',
-            onPressed: _disconnect,
+            tooltip: 'Connect battery',
+            onPressed: _openScanPicker,
           ),
         ],
       ),
       backgroundColor: _kBg,
-      body: (!_isConnected)
-          ? _buildIdle()
-          : (_data == null ? _buildLoading() : _buildDashboard(displayData)),
+      body: (!_anyConnected) ? _buildIdle() : _buildBody(),
     );
   }
 
   Widget _buildIdle() {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset('assets/Odin_Kopf.png', width: 80, height: 80,
-              color: _kTextSecondary.withOpacity(0.3),
-              colorBlendMode: BlendMode.modulate),
-          const SizedBox(height: 24),
-          const Text('No battery connected',
-              style: TextStyle(color: _kTextSecondary, fontSize: 16)),
-          const SizedBox(height: 8),
-          const Text('Tap    ⦿   to scan for batteries',
-              style: TextStyle(color: _kTextSecondary, fontSize: 13)),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Image.asset('assets/Odin_Kopf.png', width: 80, height: 80,
+            color: _kTextSecondary.withOpacity(0.3),
+            colorBlendMode: BlendMode.modulate),
+        const SizedBox(height: 24),
+        const Text('No battery connected',
+            style: TextStyle(color: _kTextSecondary, fontSize: 16)),
+        const SizedBox(height: 8),
+        const Text('Tap  ðŸ”µ  to connect a battery',
+            style: TextStyle(color: _kTextSecondary, fontSize: 13)),
+      ]),
+    );
+  }
+
+  Widget _buildBody() {
+    final bothHaveData = (_slotA.data != null) && (_slotB.data != null);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(12),
+      child: Column(children: [
+        _buildBatteryCard(_slotA, 'Battery A',
+            _isRefreshingA, (v) => setState(() => _isRefreshingA = v)),
+        if (_slotB.isConnected) const SizedBox(height: 12),
+        _buildBatteryCard(_slotB, 'Battery B',
+            _isRefreshingB, (v) => setState(() => _isRefreshingB = v)),
+        if (bothHaveData) ...[
+          const SizedBox(height: 12),
+          _buildSummaryStrip(_slotA.data!, _slotB.data!),
         ],
+        const SizedBox(height: 24),
+      ]),
+    );
+  }
+
+  // â”€â”€ Battery card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  Widget _buildBatteryCard(_BattSlot slot, String label, bool isRefreshing,
+      void Function(bool) setRefreshing) {
+    if (!slot.isConnected) return const SizedBox.shrink();
+
+    final name = slot.device!.platformName.isNotEmpty
+        ? slot.device!.platformName : label;
+
+    return Card(
+      color: _kSurface,
+      clipBehavior: Clip.hardEdge,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Container(
+          color: _kSurfaceElev,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(children: [
+            Text(label, style: const TextStyle(
+                color: _kTextSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 8),
+            Expanded(child: Text(name,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: _kTextPrimary, fontSize: 13, fontWeight: FontWeight.bold))),
+            if (slot.status.isNotEmpty && slot.data == null)
+              Text(slot.status,
+                  style: const TextStyle(color: _kTextSecondary, fontSize: 11)),
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: isRefreshing ? null : () async {
+                setRefreshing(true);
+                await _refreshSlot(slot);
+                setRefreshing(false);
+              },
+              child: isRefreshing
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: _kAccent))
+                  : const Icon(Icons.refresh, size: 18, color: _kTextSecondary),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => _showSlotInfoSheet(slot),
+              child: const Icon(Icons.info_outline, size: 18, color: _kTextSecondary),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => _disconnectSlot(slot),
+              child: const Icon(Icons.bluetooth_disabled, size: 18, color: _kCritical),
+            ),
+          ]),
+        ),
+
+        if (slot.data == null)
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const SizedBox(width: 18, height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: _kAccent)),
+              const SizedBox(width: 14),
+              Text(slot.status,
+                  style: const TextStyle(color: _kTextSecondary, fontSize: 13)),
+            ]),
+          )
+        else
+          _buildSlotData(slot.data!),
+      ]),
+    );
+  }
+
+  Widget _buildSlotData(BatteryData d) {
+    final Color socColor = d.soc > 60 ? _kAccent : d.soc > 25 ? _kWarning : _kCritical;
+
+    String? timeHint;
+    if (d.isCharging && (d.attfMin ?? 0) > 0 && d.attfMin != 65535) {
+      final h = d.attfMin! ~/ 60; final m = d.attfMin! % 60;
+      timeHint = h > 0 ? 'âš¡ ${h}h ${m}min to full' : 'âš¡ ${m}min to full';
+    } else if (d.isDischarging && (d.atteMin ?? 0) > 0 && d.atteMin != 65535) {
+      final h = d.atteMin! ~/ 60; final m = d.atteMin! % 60;
+      timeHint = h > 0 ? 'â± ${h}h ${m}min to empty' : 'â± ${m}min to empty';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          SizedBox(width: 110, height: 110,
+            child: CustomPaint(
+              painter: _GaugePainter(d.soc / 100.0, socColor),
+              child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text('${d.soc}%',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold,
+                        color: socColor)),
+                Text(d.isCharging ? 'âš¡' : d.isDischarging ? 'ðŸ”‹' : 'â€”',
+                    style: const TextStyle(fontSize: 13)),
+              ])),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            _inlineStatRow('Voltage', '${d.voltage.toStringAsFixed(3)} V',
+                Icons.flash_on, Colors.yellow),
+            const SizedBox(height: 6),
+            _inlineStatRow('Current',
+                '${d.current >= 0 ? '+' : ''}${d.current.toStringAsFixed(3)} A',
+                Icons.compare_arrows, d.isCharging ? _kAccent : _kInfo),
+            const SizedBox(height: 6),
+            _inlineStatRow('Power', '${d.power.toStringAsFixed(1)} W',
+                Icons.bolt, _kWarning),
+            const SizedBox(height: 6),
+            _inlineStatRow('Cycles', '${d.cycles}',
+                Icons.loop, Colors.purpleAccent),
+          ])),
+        ]),
+
+        const SizedBox(height: 6),
+        Text(
+            '${d.remainingAh.toStringAsFixed(1)} Ah  /  ${d.nominalAh.toStringAsFixed(1)} Ah',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _kTextSecondary, fontSize: 12)),
+        if (timeHint != null) ...[
+          const SizedBox(height: 2),
+          Text(timeHint, textAlign: TextAlign.center,
+              style: const TextStyle(color: _kTextSecondary, fontSize: 11)),
+        ],
+
+        if (d.temperatures.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 4,
+            children: d.temperatures.asMap().entries.map((e) {
+              final degC = e.value;
+              final degF = ((degC * 1.8 + 32.0) * 10).round() / 10.0;
+              final color = degC > 45 ? _kCritical : degC > 35 ? _kWarning : _kAccent;
+              return Chip(
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: _kSurfaceElev,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                label: Text(
+                    'NTC${e.key + 1}: ${degC.toStringAsFixed(1)}Â°C / ${degF.toStringAsFixed(1)}Â°F',
+                    style: TextStyle(color: color, fontSize: 12)),
+              );
+            }).toList()),
+        ],
+
+        if (d.cellVoltages.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _buildCellsCompact(d),
+        ],
+
+        if (d.activeProtections.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          ...d.activeProtections.map((p) => Row(children: [
+            const Icon(Icons.circle, size: 6, color: _kCritical),
+            const SizedBox(width: 6),
+            Text(p, style: const TextStyle(color: _kCritical, fontSize: 13)),
+          ])),
+        ],
+      ]),
+    );
+  }
+
+  Widget _inlineStatRow(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+          color: _kSurfaceElev, borderRadius: BorderRadius.circular(6)),
+      child: Row(children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 6),
+        Text(label, style: const TextStyle(fontSize: 11, color: _kTextSecondary)),
+        const Spacer(),
+        Text(value, style: const TextStyle(
+            fontSize: 14, fontWeight: FontWeight.bold, color: _kTextPrimary)),
+      ]),
+    );
+  }
+
+  Widget _buildCellsCompact(BatteryData d) {
+    final voltages = d.cellVoltages;
+    final minV = voltages.reduce(min);
+    final maxV = voltages.reduce(max);
+    final deltaMs = ((maxV - minV) * 1000).round();
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Row(children: [
+        const Icon(Icons.grid_view, color: _kAccent, size: 14),
+        const SizedBox(width: 4),
+        const Text('Cells', style: TextStyle(color: _kTextSecondary, fontSize: 12)),
+        const Spacer(),
+        Text('Î” $deltaMs mV',
+            style: TextStyle(fontSize: 11,
+                color: deltaMs > 50 ? _kWarning : _kTextSecondary)),
+      ]),
+      const SizedBox(height: 4),
+      GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4, childAspectRatio: 1.7,
+            mainAxisSpacing: 4, crossAxisSpacing: 4),
+        itemCount: voltages.length,
+        itemBuilder: (_, i) {
+          final v = voltages[i];
+          final isMin = voltages.length > 1 && v == minV;
+          final isMax = voltages.length > 1 && v == maxV;
+          return Container(
+            decoration: BoxDecoration(
+              color: _kSurfaceElev,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                  color: isMin ? _kCritical : isMax ? _kAccent : Colors.transparent,
+                  width: 1.5),
+            ),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text('C${i + 1}',
+                  style: const TextStyle(fontSize: 9, color: _kTextSecondary)),
+              Text('${(v * 1000).round()}',
+                  style: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.bold, color: _kTextPrimary)),
+            ]),
+          );
+        },
+      ),
+    ]);
+  }
+
+  // â”€â”€ Summary strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  Widget _buildSummaryStrip(BatteryData a, BatteryData b) {
+    final totalRemainingAh = a.remainingAh + b.remainingAh;
+    final totalNominalAh   = a.nominalAh   + b.nominalAh;
+    final totalCurrent     = a.current     + b.current;
+    final totalPower       = a.voltage * a.current.abs() + b.voltage * b.current.abs();
+    final combinedSoc      = totalNominalAh > 0
+        ? (totalRemainingAh / totalNominalAh * 100).round() : 0;
+    final isCharging    = totalCurrent > 0.1;
+    final isDischarging = totalCurrent < -0.1;
+
+    return Card(
+      color: _kSurfaceElev,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            const Icon(Icons.summarize, color: _kInfo, size: 16),
+            const SizedBox(width: 6),
+            const Text('Combined', style: TextStyle(
+                color: _kTextPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+            const Spacer(),
+            Text('$combinedSoc%',
+                style: TextStyle(
+                    color: combinedSoc > 60 ? _kAccent
+                        : combinedSoc > 25 ? _kWarning : _kCritical,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16)),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: _summaryCell('Capacity',
+                '${totalRemainingAh.toStringAsFixed(1)} / ${totalNominalAh.toStringAsFixed(1)} Ah',
+                Icons.battery_full, _kAccent)),
+            const SizedBox(width: 8),
+            Expanded(child: _summaryCell('Current',
+                '${totalCurrent >= 0 ? '+' : ''}${totalCurrent.toStringAsFixed(2)} A',
+                Icons.compare_arrows,
+                isCharging ? _kAccent : isDischarging ? _kInfo : _kTextSecondary)),
+            const SizedBox(width: 8),
+            Expanded(child: _summaryCell('Power',
+                '${totalPower.toStringAsFixed(1)} W',
+                Icons.bolt, _kWarning)),
+          ]),
+        ]),
       ),
     );
   }
 
-  void _showInfoSheet(BuildContext context) {
-    final deviceId = _device?.remoteId.toString() ?? '—';
-    final lastData = _lastDataAt == null ? 'No data yet' : _timeLabel(_lastDataAt!);
+  Widget _summaryCell(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+          color: _kSurface, borderRadius: BorderRadius.circular(6)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(label, style: const TextStyle(fontSize: 10, color: _kTextSecondary)),
+        ]),
+        const SizedBox(height: 4),
+        Text(value,
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color),
+            overflow: TextOverflow.ellipsis),
+      ]),
+    );
+  }
+
+  // â”€â”€ Info sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  void _showSlotInfoSheet(_BattSlot slot) {
+    final deviceId = slot.device?.remoteId.toString() ?? 'â€”';
+    final lastData = slot.lastDataAt == null ? 'No data yet' : _timeLabel(slot.lastDataAt!);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: _kSurface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.55,
-        maxChildSize: 0.92,
+        expand: false, initialChildSize: 0.55, maxChildSize: 0.92,
         builder: (_, scrollController) => ListView(
           controller: scrollController,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            Center(
-              child: Container(
-                width: 40, height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
+            Center(child: Container(
+              width: 40, height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
                   color: _kTextSecondary.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                const Icon(Icons.bluetooth_connected, color: _kAccent, size: 18),
-                const SizedBox(width: 8),
-                Text('Connection', style: TextStyle(
-                  color: _kTextPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _infoRow('Device', _device?.platformName.isNotEmpty == true
-                ? _device!.platformName : '—'),
+                  borderRadius: BorderRadius.circular(2)),
+            )),
+            _infoRow('Device', slot.device?.platformName.isNotEmpty == true
+                ? slot.device!.platformName : 'â€”'),
             _infoRow('MAC', deviceId),
-            _infoRow('Status', _status),
+            _infoRow('Status', slot.status),
             _infoRow('Last update', lastData),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                const Icon(Icons.receipt_long, color: _kInfo, size: 18),
-                const SizedBox(width: 8),
-                Text('BLE / Protocol Log', style: TextStyle(
-                  color: _kTextPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if (_logs.isEmpty)
-              Text('No log entries yet.',
-                  style: const TextStyle(color: _kTextSecondary, fontSize: 12))
+            const SizedBox(height: 16),
+            const Text('BLE / Protocol Log',
+                style: TextStyle(color: _kTextPrimary,
+                    fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 8),
+            if (slot.logs.isEmpty)
+              const Text('No log entries yet.',
+                  style: TextStyle(color: _kTextSecondary, fontSize: 12))
             else
-              ..._logs.map((line) => Padding(
-                padding: const EdgeInsets.only(bottom: 5),
+              ...slot.logs.map((line) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
                 child: Text(line,
                     style: const TextStyle(
-                      color: _kTextSecondary,
-                      fontSize: 11,
-                      fontFamily: 'monospace',
-                    )),
+                        color: _kTextSecondary, fontSize: 11,
+                        fontFamily: 'monospace')),
               )),
           ],
         ),
@@ -335,408 +670,14 @@ class _BatteryScreenState extends State<BatteryScreen> {
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(width: 100,
             child: Text(label,
-                style: const TextStyle(color: _kTextSecondary, fontSize: 13)),
-          ),
-          Expanded(
-            child: Text(value,
-                style: const TextStyle(
-                    color: _kTextPrimary, fontSize: 13,
-                    fontFamily: 'monospace')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoading() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Card(
-            color: _kSurface,
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                children: [
-                  const CircularProgressIndicator(color: _kAccent),
-                  const SizedBox(height: 20),
-                  Text(_status, style: const TextStyle(color: _kTextSecondary, fontSize: 15)),
-                  const SizedBox(height: 10),
-                  Text(
-                    _device?.remoteId.toString() ?? '',
-                    style: const TextStyle(color: _kTextSecondary, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDashboard(BatteryData d) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _buildSocGauge(d),
-          const SizedBox(height: 12),
-          _buildStatsGrid(d),
-          if (d.temperatures.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _buildTempCard(d),
-          ],
-          if (d.cellVoltages.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _buildCellsCard(d),
-          ],
-          if (d.activeProtections.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _buildAlertsCard(d),
-          ],
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  // ConnectionCard removed from dashboard — available via AppBar ⓘ button.
-
-  // _buildLogCard removed from dashboard — shown inside the info bottomsheet.
-
-  Widget _buildSocGauge(BatteryData d) {
-    final Color socColor = d.soc > 60
-        ? _kAccent
-        : d.soc > 25
-            ? _kWarning
-            : _kCritical;
-
-    // ATTE / ATTF display — 65535 is the BMS "no value" sentinel, ignore it.
-    String? timeHint;
-    if (d.isCharging && (d.attfMin ?? 0) > 0 && d.attfMin != 65535) {
-      final h = d.attfMin! ~/ 60;
-      final m = d.attfMin! % 60;
-      timeHint = h > 0 ? '⚡ ${h}h ${m}min to full' : '⚡ ${m}min to full';
-    } else if (d.isDischarging && (d.atteMin ?? 0) > 0 && d.atteMin != 65535) {
-      final h = d.atteMin! ~/ 60;
-      final m = d.atteMin! % 60;
-      timeHint = h > 0 ? '⏱ ${h}h ${m}min to empty' : '⏱ ${m}min to empty';
-    }
-
-    return Card(
-      color: _kSurface,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            SizedBox(
-              width: 190,
-              height: 190,
-              child: CustomPaint(
-                painter: _GaugePainter(d.soc / 100.0, socColor),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${d.soc}%',
-                        style: TextStyle(
-                          fontSize: 44,
-                          fontWeight: FontWeight.bold,
-                          color: socColor,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        d.isCharging
-                            ? '⚡ Charging'
-                            : d.isDischarging
-                                ? '🔋 Discharging'
-                                : '— Idle',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: _kTextSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${d.remainingAh.toStringAsFixed(1)} Ah  /  ${d.nominalAh.toStringAsFixed(1)} Ah',
-              style: const TextStyle(color: _kTextSecondary, fontSize: 13),
-            ),
-            if (timeHint != null) ...[              const SizedBox(height: 4),
-              Text(timeHint,
-                  style: const TextStyle(color: _kTextSecondary, fontSize: 12)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsGrid(BatteryData d) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      childAspectRatio: 1.6,
-      children: [
-        _statCard(
-          'Voltage',
-          '${d.voltage.toStringAsFixed(3)} V',
-          Icons.flash_on,
-          Colors.yellow,
-        ),
-        _statCard(
-          'Current',
-          '${d.current >= 0 ? '+' : ''}${d.current.toStringAsFixed(3)} A',
-          Icons.compare_arrows,
-          d.isCharging ? _kAccent : _kInfo,
-        ),
-        _statCard(
-          'Power',
-          '${d.power.toStringAsFixed(1)} W',
-          Icons.bolt,
-          _kWarning,
-        ),
-        _statCard(
-          'Cycles',
-          '${d.cycles}',
-          Icons.loop,
-          Colors.purpleAccent,
-        ),
-      ],
-    );
-  }
-
-  Widget _statCard(String label, String value, IconData icon, Color color) {
-    return Card(
-      color: _kSurface,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 16, color: color),
-                const SizedBox(width: 5),
-                Text(
-                  label,
-                  style: const TextStyle(fontSize: 12, color: _kTextSecondary),
-                ),
-              ],
-            ),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: _kTextPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTempCard(BatteryData d) {
-    return Card(
-      color: _kSurface,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.thermostat, color: _kCritical, size: 18),
-                SizedBox(width: 6),
-                Text(
-                  'Temperature',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15,
-                      color: _kTextPrimary),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 10,
-              runSpacing: 6,
-              children: d.temperatures.asMap().entries.map((e) {
-                final degC = e.value;
-                final degF = ((degC * 1.8 + 32.0) * 10).round() / 10.0;
-                final color = degC > 45
-                    ? _kCritical
-                    : degC > 35
-                        ? _kWarning
-                        : _kAccent;
-                return Chip(
-                  backgroundColor: _kSurfaceElev,
-                  label: Text(
-                    'NTC${e.key + 1}: ${degC.toStringAsFixed(1)}°C / ${degF.toStringAsFixed(1)}°F',
-                    style: TextStyle(color: color, fontSize: 13),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCellsCard(BatteryData d) {
-    final voltages = d.cellVoltages;
-    final minV = voltages.reduce(min);
-    final maxV = voltages.reduce(max);
-    final deltaMs = ((maxV - minV) * 1000).round();
-
-    return Card(
-      color: _kSurface,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.grid_view, color: _kAccent, size: 18),
-                    SizedBox(width: 6),
-                    Text(
-                      'Cell Voltages',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15,
-                          color: _kTextPrimary),
-                    ),
-                  ],
-                ),
-                Text(
-                  'Δ $deltaMs mV',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: deltaMs > 50 ? _kWarning : _kTextSecondary,
-                    fontWeight: deltaMs > 50 ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                childAspectRatio: 1.7,
-                mainAxisSpacing: 6,
-                crossAxisSpacing: 6,
-              ),
-              itemCount: voltages.length,
-              itemBuilder: (_, i) {
-                final v = voltages[i];
-                final isMin = voltages.length > 1 && v == minV;
-                final isMax = voltages.length > 1 && v == maxV;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: _kSurfaceElev,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isMin
-                          ? _kCritical
-                          : isMax
-                              ? _kAccent
-                              : Colors.transparent,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'C${i + 1}',
-                        style: const TextStyle(
-                            fontSize: 10, color: _kTextSecondary),
-                      ),
-                      Text(
-                        '${(v * 1000).round()}',
-                        style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.bold,
-                            color: _kTextPrimary),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'mV per cell  •  green = max  •  red = min',
-              style: TextStyle(fontSize: 11, color: _kTextSecondary),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAlertsCard(BatteryData d) {
-    return Card(
-      color: const Color(0xFF2D0808),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.warning_amber, color: _kCritical, size: 20),
-                SizedBox(width: 6),
-                Text(
-                  'Active Alerts',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: _kCritical,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            ...d.activeProtections.map(
-              (p) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.circle, size: 6, color: _kCritical),
-                    const SizedBox(width: 8),
-                    Text(p, style: const TextStyle(color: _kCritical)),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+                style: const TextStyle(color: _kTextSecondary, fontSize: 13))),
+        Expanded(child: Text(value,
+            style: const TextStyle(
+                color: _kTextPrimary, fontSize: 13, fontFamily: 'monospace'))),
+      ]),
     );
   }
 }
