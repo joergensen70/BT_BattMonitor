@@ -323,6 +323,7 @@ class _ChartScreenState extends State<ChartScreen> {
 
     List<FlSpot> makeCurrSpots(Iterable<double?> Function(ChartPoint) getter) =>
         pts.where((p) => getter(p).first != null)
+           .skipWhile((p) => getter(p).first == 0.0)  // suppress BMS startup zeros
            .map((p) => FlSpot(p.tSec - minT, scaleC(getter(p).first!)))
            .toList();
 
