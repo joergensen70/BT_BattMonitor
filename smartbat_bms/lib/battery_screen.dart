@@ -416,7 +416,7 @@ class _BatteryScreenState extends State<BatteryScreen> {
               painter: _GaugePainter(d.soc / 100.0, socColor),
               child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Text('${d.soc}%',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.normal,
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal,
                         color: socColor)),
                 Icon(
                   d.isCharging ? Icons.bolt

@@ -1363,8 +1363,6 @@ class BmsService {
   }
 
   void _log(String message) {
-    // Mirror logs to logcat so we can diagnose BLE behavior remotely.
-    print('[BMS] $message');
     if (!_debugController.isClosed) {
       _debugController.add(message);
     }
