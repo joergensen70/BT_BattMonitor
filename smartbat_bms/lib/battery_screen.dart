@@ -5,6 +5,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'battery_data.dart';
 import 'bms_service.dart';
+import 'chart_screen.dart';
 import 'scan_screen.dart';
 
 // ── Design tokens (from dual_battery_app_spec.md §7) ────────────────────────
@@ -281,6 +282,9 @@ class _BatteryScreenState extends State<BatteryScreen> {
         slot.lastDataAt = DateTime.now();
         slot.status = 'Data received';
       });
+      // Feed chart buffer
+      if (slot == _slotA) ChartBuffer.instance.addA(d);
+      else ChartBuffer.instance.addB(d);
     });
 
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {
@@ -346,6 +350,12 @@ class _BatteryScreenState extends State<BatteryScreen> {
         backgroundColor: _kSurface,
         foregroundColor: _kTextPrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.show_chart),
+            tooltip: 'Live chart',
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ChartScreen())),
+          ),
           IconButton(
             icon: const Icon(Icons.bluetooth_searching),
             tooltip: 'Connect battery',
@@ -639,6 +649,21 @@ class _BatteryScreenState extends State<BatteryScreen> {
         ? (totalRemainingAh / totalNominalAh * 100).round() : 0;
     final isCharging    = totalCurrent > 0.1;
     final isDischarging = totalCurrent < -0.1;
+    final vDelta        = (a.voltage - b.voltage).abs();
+    final vDeltaColor   = vDelta > 0.2 ? _kCritical : vDelta > 0.05 ? _kWarning : _kAccent;
+
+    // Cell spread imbalance per battery
+    double cellSpreadA = 0, cellSpreadB = 0;
+    if (a.cellVoltages.length > 1) {
+      cellSpreadA = a.cellVoltages.reduce((x, y) => x > y ? x : y)
+                  - a.cellVoltages.reduce((x, y) => x < y ? x : y);
+    }
+    if (b.cellVoltages.length > 1) {
+      cellSpreadB = b.cellVoltages.reduce((x, y) => x > y ? x : y)
+                  - b.cellVoltages.reduce((x, y) => x < y ? x : y);
+    }
+    final maxSpread     = cellSpreadA > cellSpreadB ? cellSpreadA : cellSpreadB;
+    final spreadColor   = maxSpread > 80 ? _kCritical : maxSpread > 30 ? _kWarning : _kAccent;
 
     return Card(
       color: _kSurfaceElev,
@@ -672,6 +697,20 @@ class _BatteryScreenState extends State<BatteryScreen> {
             Expanded(child: _summaryCell('Power',
                 '${totalPower.toStringAsFixed(1)} W',
                 Icons.bolt, _kWarning)),
+          ]),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: _summaryCell('ΔV A↔B',
+                '${(vDelta * 1000).toStringAsFixed(0)} mV',
+                Icons.balance, vDeltaColor)),
+            const SizedBox(width: 8),
+            Expanded(child: _summaryCell('Cell spread',
+                '${maxSpread.toStringAsFixed(0)} mV',
+                Icons.grid_view, spreadColor)),
+            const SizedBox(width: 8),
+            Expanded(child: _summaryCell('Voltage A/B',
+                '${a.voltage.toStringAsFixed(2)} / ${b.voltage.toStringAsFixed(2)} V',
+                Icons.compare, _kTextSecondary)),
           ]),
         ]),
       ),

@@ -12,6 +12,7 @@ dependencies:
   flutter_blue_plus: ^1.32.0
   permission_handler: ^11.3.1
   shared_preferences: ^2.3.0
+  fl_chart: ^0.69.0
 
 dev_dependencies:
   flutter_test:
