@@ -128,6 +128,17 @@ class _BatteryScreenState extends State<BatteryScreen> {
     }
 
     await trySlot(_slotA, macA, _prefKeyA);
+
+    // Wait for slot A to get data (or timeout) before starting slot B —
+    // BLE cannot reliably handle two simultaneous connection setups.
+    if (macB != null && macA != null) {
+      for (int i = 0; i < 40; i++) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        if (_disposed || !mounted) return;
+        if (_slotA.hasData) break;
+      }
+    }
+
     await trySlot(_slotB, macB, _prefKeyB);
   }
 
