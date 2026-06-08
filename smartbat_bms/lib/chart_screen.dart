@@ -19,6 +19,7 @@ const _kColorAVolt  = Color(0xFF35D07F); // Battery A Voltage
 const _kColorBVolt  = Color(0xFF4DB3FF); // Battery B Voltage
 const _kColorACurr  = Color(0xFFFFB020); // Battery A Current
 const _kColorBCurr  = Color(0xFFFF5D5D); // Battery B Current
+const _kInfo        = Color(0xFF4DB3FF); // matches battery_screen token
 
 // ── Point model ───────────────────────────────────────────────────────────────
 class ChartPoint {
@@ -216,10 +217,10 @@ class _ChartScreenState extends State<ChartScreen> {
     try {
       final path = await _rec.exportCsv(sessions.last);
       if (!mounted) return;
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile(path)],
+      await Share.shareXFiles(
+        [XFile(path)],
         subject: 'SmartBat Recording',
-      ));
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

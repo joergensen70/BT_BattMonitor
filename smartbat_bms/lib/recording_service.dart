@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show VoidCallback;
 import 'package:path_provider/path_provider.dart';
 import 'battery_data.dart';
 
