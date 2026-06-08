@@ -1,0 +1,7 @@
+# Large Android bugreport/dumpstate files (can be hundreds of MB)
+**/dumpstate*.txt
+**/bugreport*.zip
+smartbat_bms/_tmp_bugreport_extract/
+
+# JADX GUI binary (large, not needed in repo)
+tools/jadx-gui-*/

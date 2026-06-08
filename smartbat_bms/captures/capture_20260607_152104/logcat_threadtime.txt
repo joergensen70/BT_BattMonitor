@@ -1,0 +1,152 @@
+--------- beginning of main
+06-07 15:21:12.632 21561 21650 I flutter : [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+06-07 15:21:12.668 21561 21673 I flutter : Could not start Dart VM service HTTP server:
+06-07 15:21:12.668 21561 21673 I flutter : SocketException: Failed to create server socket (OS Error: Operation not permitted, errno = 1), address = 127.0.0.1, port = 0
+06-07 15:21:12.668 21561 21673 I flutter : #0      _NativeSocket.bind (dart:io-patch/socket_patch.dart:1216:7)
+06-07 15:21:12.668 21561 21673 I flutter : <asynchronous suspension>
+06-07 15:21:12.668 21561 21673 I flutter : #1      _RawServerSocket.bind.<anonymous closure> (dart:io-patch/socket_patch.dart:2163:12)
+06-07 15:21:12.668 21561 21673 I flutter : <asynchronous suspension>
+06-07 15:21:12.668 21561 21673 I flutter : #2      _ServerSocket.bind.<anonymous closure> (dart:io-patch/socket_patch.dart:2483:12)
+06-07 15:21:12.668 21561 21673 I flutter : <asynchronous suspension>
+06-07 15:21:12.668 21561 21673 I flutter : #3      _HttpServer.bind.<anonymous closure> (dart:_http/http_impl.dart:3476:24)
+06-07 15:21:12.668 21561 21673 I flutter : <asynchronous suspension>
+06-07 15:21:12.668 21561 21673 I flutter : #4      Server.startup.startServer (dart:vmservice_io/vmservice_server.dart:323:23)
+06-07 15:21:12.668 21561 21673 I flutter : <asynchronous suspension>
+06-07 15:21:12.668 21561 21673 I flutter : #5      Server.startup (dart:vmservice_io/vmservice_server.dart:345:11)
+06-07 15:21:12.668 21561 21673 I flutter : <asynchronous suspension>
+06-07 15:21:12.668 21561 21673 I flutter : #6      _toggleWebServer (dart:vmservice_io:229:5)
+06-07 15:21:12.668 21561 21673 I flutter : <asynchronous suspension>
+06-07 15:21:18.745 15250 15250 D BluetoothGatt: close()
+06-07 15:21:18.746 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=157
+06-07 15:21:18.818 15250 15250 D BluetoothGatt: close()
+06-07 15:21:18.819 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=158
+06-07 15:21:19.143 15250 15250 D BluetoothGatt: close()
+06-07 15:21:19.143 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=159
+06-07 15:21:19.525 21561 21561 I flutter : [BMS] Connecting to SmartBat-A19681
+06-07 15:21:19.555 21561 21561 D BluetoothGatt: connect() - device: XX:XX:XX:XX:F1:F2, auto: false
+06-07 15:21:19.555 21561 21561 D BluetoothGatt: registerApp()
+06-07 15:21:19.556 21561 21561 D BluetoothGatt: registerApp() - UUID=0aab3e25-8cda-4d29-a636-4c1150cd3456
+06-07 15:21:19.557 21561 21768 D BluetoothGatt: onClientRegistered() - status=0 clientIf=163
+06-07 15:21:19.721 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-07 15:21:19.721 15250 15250 D BluetoothGatt: registerApp()
+06-07 15:21:19.721 15250 15250 D BluetoothGatt: registerApp() - UUID=3df6386f-b0f6-42c3-8752-984d5573b301
+06-07 15:21:19.723 15250 10028 D BluetoothGatt: onClientRegistered() - status=0 clientIf=164
+06-07 15:21:19.802 15341 15517 W BtGatt.GattService: pkgName : com.smartbat.bms
+06-07 15:21:19.802 21561 21768 D BluetoothGatt: onClientConnectionState() - status=0 clientIf=163 connected=true device=XX:XX:XX:XX:F1:F2
+06-07 15:21:19.848 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:BE:7A, auto: true
+06-07 15:21:19.848 15250 15250 D BluetoothGatt: registerApp()
+06-07 15:21:19.848 15250 15250 D BluetoothGatt: registerApp() - UUID=a6649c3d-6c92-4c44-bffb-5ef7438744ba
+06-07 15:21:19.849 15250 10028 D BluetoothGatt: onClientRegistered() - status=0 clientIf=165
+06-07 15:21:20.163 21561 21561 D BluetoothGatt: configureMTU() - device: XX:XX:XX:XX:F1:F2 mtu: 512
+06-07 15:21:20.227 21561 21596 D BluetoothGatt: onConfigureMTU() - Device=XX:XX:XX:XX:F1:F2 mtu=23 status=0
+06-07 15:21:20.230 21561 21561 D BluetoothGatt: discoverServices() - device: XX:XX:XX:XX:F1:F2
+06-07 15:21:20.231 21561 21596 D BluetoothGatt: onSearchComplete() = address=XX:XX:XX:XX:F1:F2 status=0
+06-07 15:21:20.249 21561 21561 D BluetoothGatt: setCharacteristicNotification() - uuid: 00002a05-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:21:20.323 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:31:3E, auto: true
+06-07 15:21:20.323 21561 21561 I flutter : [BMS] Discovered 4 services
+06-07 15:21:20.323 15250 15250 D BluetoothGatt: registerApp()
+06-07 15:21:20.323 15250 15250 D BluetoothGatt: registerApp() - UUID=68b5367a-00cb-4b47-8902-d42a331cb140
+06-07 15:21:20.324 21561 21561 I flutter : [BMS] Service 1800 with 5 characteristics
+06-07 15:21:20.325 15250 10028 D BluetoothGatt: onClientRegistered() - status=0 clientIf=166
+06-07 15:21:20.326 21561 21561 I flutter : [BMS] Service 1801 with 1 characteristics
+06-07 15:21:20.326 21561 21561 I flutter : [BMS] Service 180a with 9 characteristics
+06-07 15:21:20.326 21561 21561 I flutter : [BMS] Service fff0 with 6 characteristics
+06-07 15:21:20.327 21561 21561 I flutter : [BMS] Characteristic fff1 R:true W:true N:false
+06-07 15:21:20.328 21561 21561 I flutter : [BMS] Characteristic fff2 R:true W:false N:false
+06-07 15:21:20.329 21561 21561 I flutter : [BMS] Characteristic fff3 R:false W:true N:false
+06-07 15:21:20.329 21561 21561 I flutter : [BMS] Characteristic fff4 R:true W:true N:true
+06-07 15:21:20.330 21561 21561 I flutter : [BMS] Characteristic fff5 R:true W:false N:false
+06-07 15:21:20.331 21561 21561 I flutter : [BMS] Characteristic fff6 R:true W:true N:true
+06-07 15:21:20.334 21561 21561 I flutter : [BMS] Write candidates: fff3, fff6, fff4
+06-07 15:21:20.334 21561 21561 I flutter : [BMS] Notify candidates: fff4, fff6
+06-07 15:21:20.334 21561 21561 I flutter : [BMS] Read candidates: fff1, fff2, fff4, fff5, fff6
+06-07 15:21:20.334 21561 21561 I flutter : [BMS] Selected chars: write=fff3, notify=fff4, altWrite=fff6
+06-07 15:21:20.335 21561 21561 D BluetoothGatt: setCharacteristicNotification() - uuid: 0000fff4-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:21:20.414 21561 21561 I flutter : [BMS] Notifications enabled on fff4
+06-07 15:21:20.416 21561 21561 D BluetoothGatt: setCharacteristicNotification() - uuid: 0000fff6-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:21:20.501 21561 21561 I flutter : [BMS] Notifications enabled on fff6
+06-07 15:21:20.602 21561 21561 I flutter : [BMS] INIT READ fff1 (1b): 01
+06-07 15:21:20.681 21561 21561 I flutter : [BMS] INIT READ fff2 (1b): 02
+06-07 15:21:20.773 21561 21561 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.776 21561 21561 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.777 21561 21561 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.778 21561 21561 I flutter : [BMS] INIT READ fff4 (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.778 21561 21561 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.778 21561 21561 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.778 21561 21561 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.865 21561 21561 I flutter : [BMS] INIT READ fff5 (5b): 01 02 03 04 05
+06-07 15:21:20.865 21561 21561 I flutter : [BMS] RX chunk 01 02 03 04 05
+06-07 15:21:20.866 21561 21561 I flutter : [BMS] RX SmartBat-native (5b): 01 02 03 04 05
+06-07 15:21:20.866 21561 21561 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 
+06-07 15:21:20.949 21561 21561 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.949 21561 21561 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.949 21561 21561 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.950 21561 21561 I flutter : [BMS] INIT READ fff6 (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:21:20.951 21561 21561 I flutter : [BMS] Polling interval set to 60 ms
+06-07 15:21:20.951 21561 21561 I flutter : [BMS] Switching to LionCheck command set (SmartBat-native frames detected during init reads)
+06-07 15:21:20.952 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA1002 (8b) phase=bootstrap
+06-07 15:21:20.954 21561 21561 I flutter : [BMS] TX 2B 52 41 41 31 30 30 32 -> fff3 (withResponse)
+06-07 15:21:21.011 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA0A03 (8b) phase=bootstrap
+06-07 15:21:21.011 21561 21561 I flutter : [BMS] TX 2B 52 41 41 30 41 30 33 -> fff3 (withResponse)
+06-07 15:21:21.036 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=13, length=8
+06-07 15:21:21.039 21561 21561 I flutter : [BMS] Marking fff3 as unsuitable for long writes after invalid-length error
+06-07 15:21:21.039 21561 21561 I flutter : [BMS] Write mode failed on fff3: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:21:21.040 21561 21561 I flutter : [BMS] Write failed on fff3: Exception: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:21:21.040 21561 21561 I flutter : [BMS] TX 2B 52 41 41 31 30 30 32 -> fff6 (withoutResponse)
+06-07 15:21:21.072 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA0802 (8b) phase=bootstrap
+06-07 15:21:21.073 21561 21561 I flutter : [BMS] TX 2B 52 41 41 30 38 30 32 -> fff6 (withoutResponse)
+06-07 15:21:21.129 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=13, length=8
+06-07 15:21:21.132 21561 21561 I flutter : [BMS] Marking fff3 as unsuitable for long writes after invalid-length error
+06-07 15:21:21.132 21561 21561 I flutter : [BMS] Write mode failed on fff3: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:21:21.132 21561 21561 I flutter : [BMS] Write failed on fff3: Exception: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:21:21.133 21561 21561 I flutter : [BMS] TX 2B 52 41 41 30 41 30 33 -> fff6 (withoutResponse)
+06-07 15:21:21.155 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA0C02 (8b) phase=bootstrap
+06-07 15:21:21.156 21561 21561 I flutter : [BMS] TX 2B 52 41 41 30 43 30 32 -> fff6 (withoutResponse)
+06-07 15:21:21.157 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.159 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.161 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.162 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.191 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA0403 (8b) phase=bootstrap
+06-07 15:21:21.192 21561 21561 I flutter : [BMS] TX 2B 52 41 41 30 34 30 33 -> fff6 (withoutResponse)
+06-07 15:21:21.196 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.251 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA3C03 (8b) phase=bootstrap
+06-07 15:21:21.251 21561 21561 I flutter : [BMS] TX 2B 52 41 41 33 43 30 33 -> fff6 (withoutResponse)
+06-07 15:21:21.253 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.311 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA0603 (8b) phase=bootstrap
+06-07 15:21:21.312 21561 21561 I flutter : [BMS] TX 2B 52 41 41 30 36 30 33 -> fff6 (withoutResponse)
+06-07 15:21:21.315 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.371 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA1802 (8b) phase=bootstrap
+06-07 15:21:21.372 21561 21561 I flutter : [BMS] TX 2B 52 41 41 31 38 30 32 -> fff6 (withoutResponse)
+06-07 15:21:21.377 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.434 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA1A02 (8b) phase=bootstrap
+06-07 15:21:21.434 21561 21561 I flutter : [BMS] TX 2B 52 41 41 31 41 30 32 -> fff6 (withoutResponse)
+06-07 15:21:21.437 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.493 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA2802 (8b) phase=bootstrap
+06-07 15:21:21.493 21561 21561 I flutter : [BMS] TX 2B 52 41 41 32 38 30 32 -> fff6 (withoutResponse)
+06-07 15:21:21.502 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.552 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA4802 (8b) phase=bootstrap
+06-07 15:21:21.553 21561 21561 I flutter : [BMS] TX 2B 52 41 41 34 38 30 32 -> fff6 (withoutResponse)
+06-07 15:21:21.559 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.612 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA0202 (8b) phase=steady
+06-07 15:21:21.612 21561 21561 I flutter : [BMS] TX 2B 52 41 41 30 32 30 32 -> fff6 (withoutResponse)
+06-07 15:21:21.618 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.672 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA0202 (8b) phase=steady
+06-07 15:21:21.672 21561 21561 I flutter : [BMS] TX 2B 52 41 41 30 32 30 32 -> fff6 (withoutResponse)
+06-07 15:21:21.675 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.737 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA0A03 (8b) phase=steady
+06-07 15:21:21.738 21561 21561 I flutter : [BMS] TX 2B 52 41 41 30 41 30 33 -> fff6 (withoutResponse)
+06-07 15:21:21.740 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.791 21561 21561 I flutter : [BMS] TX Lion ASCII +RAA0802 (8b) phase=steady
+06-07 15:21:21.792 21561 21561 I flutter : [BMS] TX 2B 52 41 41 30 38 30 32 -> fff6 (withoutResponse)
+06-07 15:21:21.795 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:21:21.851 21561 21561 I flutter : [BMS] Protocol probe failed after 16 polls (lionMode=true, echoCount=0)
+06-07 15:21:23.098 21561 21597 D BluetoothGatt: onConnectionUpdated() - Device=XX:XX:XX:XX:F1:F2 interval=80 latency=1 timeout=100 status=0
+06-07 15:21:29.132 11277 11277 D BluetoothGatt: close()
+06-07 15:21:29.133 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=160
+06-07 15:21:30.239 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-07 15:21:30.239 11277 11277 D BluetoothGatt: registerApp()
+06-07 15:21:30.239 11277 11277 D BluetoothGatt: registerApp() - UUID=534c5823-d4b5-4c66-ac06-aa42dceba789
+06-07 15:21:30.240 11277 15618 D BluetoothGatt: onClientRegistered() - status=0 clientIf=167
+06-07 15:21:35.699 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:21:35.854 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=31
+06-07 15:21:36.046 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2

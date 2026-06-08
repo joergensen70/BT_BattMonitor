@@ -1,0 +1,337 @@
+--------- beginning of main
+06-07 15:08:25.289 11055 11055 I flutter : [BMS] Connecting to SmartBat-A19681
+06-07 15:08:25.309 11055 11055 D BluetoothGatt: connect() - device: XX:XX:XX:XX:F1:F2, auto: false
+06-07 15:08:25.309 11055 11055 D BluetoothGatt: registerApp()
+06-07 15:08:25.309 11055 11055 D BluetoothGatt: registerApp() - UUID=1de0034a-a3bb-4a6d-a75b-a65c465ed922
+06-07 15:08:25.310 11055 11340 D BluetoothGatt: onClientRegistered() - status=0 clientIf=104
+06-07 15:08:26.200 15341 15517 W BtGatt.GattService: pkgName : com.smartbat.bms
+06-07 15:08:26.200 11055 11340 D BluetoothGatt: onClientConnectionState() - status=0 clientIf=104 connected=true device=XX:XX:XX:XX:F1:F2
+06-07 15:08:26.554 11055 11055 D BluetoothGatt: configureMTU() - device: XX:XX:XX:XX:F1:F2 mtu: 512
+06-07 15:08:26.627 11055 11340 D BluetoothGatt: onConfigureMTU() - Device=XX:XX:XX:XX:F1:F2 mtu=23 status=0
+06-07 15:08:26.628 11055 11055 D BluetoothGatt: discoverServices() - device: XX:XX:XX:XX:F1:F2
+06-07 15:08:26.629 11055 11340 D BluetoothGatt: onSearchComplete() = address=XX:XX:XX:XX:F1:F2 status=0
+06-07 15:08:26.638 11055 11055 D BluetoothGatt: setCharacteristicNotification() - uuid: 00002a05-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:08:26.725 11055 11055 I flutter : [BMS] Discovered 4 services
+06-07 15:08:26.725 11055 11055 I flutter : [BMS] Service 1800 with 5 characteristics
+06-07 15:08:26.726 11055 11055 I flutter : [BMS] Service 1801 with 1 characteristics
+06-07 15:08:26.726 11055 11055 I flutter : [BMS] Service 180a with 9 characteristics
+06-07 15:08:26.726 11055 11055 I flutter : [BMS] Service fff0 with 6 characteristics
+06-07 15:08:26.727 11055 11055 I flutter : [BMS] Characteristic fff1 R:true W:true N:false
+06-07 15:08:26.727 11055 11055 I flutter : [BMS] Characteristic fff2 R:true W:false N:false
+06-07 15:08:26.728 11055 11055 I flutter : [BMS] Characteristic fff3 R:false W:true N:false
+06-07 15:08:26.729 11055 11055 I flutter : [BMS] Characteristic fff4 R:true W:true N:true
+06-07 15:08:26.729 11055 11055 I flutter : [BMS] Characteristic fff5 R:true W:false N:false
+06-07 15:08:26.730 11055 11055 I flutter : [BMS] Characteristic fff6 R:true W:true N:true
+06-07 15:08:26.734 11055 11055 I flutter : [BMS] Write candidates: fff3, fff6, fff4
+06-07 15:08:26.734 11055 11055 I flutter : [BMS] Notify candidates: fff4, fff6
+06-07 15:08:26.734 11055 11055 I flutter : [BMS] Read candidates: fff1, fff2, fff4, fff5, fff6
+06-07 15:08:26.734 11055 11055 I flutter : [BMS] Selected chars: write=fff3, notify=fff4, altWrite=fff6
+06-07 15:08:26.748 11055 11055 D BluetoothGatt: setCharacteristicNotification() - uuid: 0000fff4-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:08:26.811 11055 11055 I flutter : [BMS] Notifications enabled on fff4
+06-07 15:08:26.814 11055 11055 D BluetoothGatt: setCharacteristicNotification() - uuid: 0000fff6-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:08:26.902 11055 11055 I flutter : [BMS] Notifications enabled on fff6
+06-07 15:08:26.990 11055 11055 I flutter : [BMS] INIT READ fff1 (1b): 01
+06-07 15:08:27.081 11055 11055 I flutter : [BMS] INIT READ fff2 (1b): 02
+06-07 15:08:27.171 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.171 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.171 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.172 11055 11055 I flutter : [BMS] INIT READ fff4 (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.172 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.172 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.172 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.258 11055 11055 I flutter : [BMS] INIT READ fff5 (5b): 01 02 03 04 05
+06-07 15:08:27.258 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05
+06-07 15:08:27.258 11055 11055 I flutter : [BMS] RX SmartBat-native (5b): 01 02 03 04 05
+06-07 15:08:27.258 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 
+06-07 15:08:27.355 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.355 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.355 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.356 11055 11055 I flutter : [BMS] INIT READ fff6 (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.356 11055 11055 I flutter : [BMS] Trying protocol profile: JBD-alt-endian
+06-07 15:08:27.356 11055 11055 I flutter : [BMS] Trying write mode: with-response-first
+06-07 15:08:27.357 11055 11055 I flutter : [BMS] TX DD A5 03 00 FD FF 77 -> fff3 (withResponse)
+06-07 15:08:27.438 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=13, length=7
+06-07 15:08:27.444 11055 11055 I flutter : [BMS] Marking fff3 as unsuitable for long writes after invalid-length error
+06-07 15:08:27.445 11055 11055 I flutter : [BMS] Write mode failed on fff3: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:08:27.445 11055 11055 I flutter : [BMS] Write failed on fff3: Exception: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:08:27.445 11055 11055 I flutter : [BMS] TX DD A5 03 00 FD FF 77 -> fff6 (withoutResponse)
+06-07 15:08:27.449 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=7
+06-07 15:08:27.530 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.530 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.530 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.531 11055 11055 I flutter : [BMS] RX read fff4: 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.531 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.531 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.531 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:27.620 11055 11055 I flutter : [BMS] RX chunk DD A5 03 00 FD FF 77
+06-07 15:08:27.620 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 03 00 FD FF 77
+06-07 15:08:27.620 11055 11055 I flutter : [BMS] RX read fff6: DD A5 03 00 FD FF 77
+06-07 15:08:27.620 11055 11055 I flutter : [BMS] RX chunk DD A5 03 00 FD FF 77
+06-07 15:08:27.620 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 03 00 FD FF 77
+06-07 15:08:27.922 11055 11055 I flutter : [BMS] TX DD A5 04 00 FC FF 77 -> fff6 (withoutResponse)
+06-07 15:08:27.926 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=7
+06-07 15:08:28.023 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:28.023 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:28.023 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:28.024 11055 11055 I flutter : [BMS] RX read fff4: 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:28.024 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:28.024 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:28.024 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:28.120 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:28.120 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 04 00 FC FF 77
+06-07 15:08:28.121 11055 11055 I flutter : [BMS] RX read fff6: DD A5 04 00 FC FF 77
+06-07 15:08:28.121 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:28.121 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 04 00 FC FF 77
+06-07 15:08:28.122 11055 11055 I flutter : [BMS] Polling interval set to 1000 ms
+06-07 15:08:29.122 11055 11055 I flutter : [BMS] Trying protocol profile: JBD-classic
+06-07 15:08:29.122 11055 11055 I flutter : [BMS] Trying write mode: without-response-first
+06-07 15:08:29.123 11055 11055 I flutter : [BMS] TX DD A5 03 00 FF FD 77 -> fff6 (withoutResponse)
+06-07 15:08:29.130 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=7
+06-07 15:08:29.238 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.238 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.238 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.238 11055 11055 I flutter : [BMS] RX read fff4: 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.239 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.239 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.239 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.331 11055 11055 I flutter : [BMS] RX chunk DD A5 03 00 FF FD 77
+06-07 15:08:29.331 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 03 00 FF FD 77
+06-07 15:08:29.332 11055 11055 I flutter : [BMS] RX read fff6: DD A5 03 00 FF FD 77
+06-07 15:08:29.332 11055 11055 I flutter : [BMS] RX chunk DD A5 03 00 FF FD 77
+06-07 15:08:29.332 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 03 00 FF FD 77
+06-07 15:08:29.575 11055 11068 D BluetoothGatt: onConnectionUpdated() - Device=XX:XX:XX:XX:F1:F2 interval=80 latency=1 timeout=100 status=0
+06-07 15:08:29.633 11055 11055 I flutter : [BMS] TX DD A5 04 00 FF FC 77 -> fff6 (withoutResponse)
+06-07 15:08:29.635 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=7
+06-07 15:08:29.869 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.869 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.869 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.870 11055 11055 I flutter : [BMS] RX read fff4: 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.870 11055 11055 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.870 11055 11055 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:29.870 11055 11055 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:08:30.069 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FF FC 77
+06-07 15:08:30.069 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 04 00 FF FC 77
+06-07 15:08:30.069 11055 11055 I flutter : [BMS] RX read fff6: DD A5 04 00 FF FC 77
+06-07 15:08:30.070 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FF FC 77
+06-07 15:08:30.070 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 04 00 FF FC 77
+06-07 15:08:30.122 11055 11055 I flutter : [BMS] Trying protocol profile: JBD-alt-endian
+06-07 15:08:30.122 11055 11055 I flutter : [BMS] Trying write mode: with-response-first
+06-07 15:08:30.122 11055 11055 I flutter : [BMS] TX DD A5 03 00 FD FF 77 -> fff4 (withoutResponse)
+06-07 15:08:30.126 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=7
+06-07 15:08:30.269 11055 11055 I flutter : [BMS] RX chunk DD A5 03 00 FD FF 77
+06-07 15:08:30.269 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 03 00 FD FF 77
+06-07 15:08:30.270 11055 11055 I flutter : [BMS] RX read fff4: DD A5 03 00 FD FF 77
+06-07 15:08:30.270 11055 11055 I flutter : [BMS] RX chunk DD A5 03 00 FD FF 77
+06-07 15:08:30.270 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 03 00 FD FF 77
+06-07 15:08:30.473 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FF FC 77
+06-07 15:08:30.473 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FF FC 77
+06-07 15:08:30.474 11055 11055 I flutter : [BMS] RX read fff6: DD A5 04 00 FF FC 77
+06-07 15:08:30.474 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FF FC 77
+06-07 15:08:30.474 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FF FC 77
+06-07 15:08:30.775 11055 11055 I flutter : [BMS] TX DD A5 04 00 FC FF 77 -> fff4 (withoutResponse)
+06-07 15:08:30.780 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=7
+06-07 15:08:31.073 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:31.073 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 04 00 FC FF 77
+06-07 15:08:31.074 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:31.074 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:31.074 11055 11055 I flutter : [BMS] Ignoring command echo: DD A5 04 00 FC FF 77
+06-07 15:08:31.122 11055 11055 I flutter : [BMS] Polling interval set to 200 ms
+06-07 15:08:31.122 11055 11055 I flutter : [BMS] Switching to LionCheck command set (after 4 JBD probe polls, echoCount=14)
+06-07 15:08:31.123 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA1002 (8b) phase=bootstrap
+06-07 15:08:31.123 11055 11055 I flutter : [BMS] TX 2B 52 41 41 31 30 30 32 -> fff6 (withoutResponse)
+06-07 15:08:31.270 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FF FC 77
+06-07 15:08:31.270 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FF FC 77
+06-07 15:08:31.271 11055 11055 I flutter : [BMS] RX read fff6: DD A5 04 00 FF FC 77
+06-07 15:08:31.271 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FF FC 77
+06-07 15:08:31.271 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FF FC 77
+06-07 15:08:31.292 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:31.324 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA0A03 (8b) phase=bootstrap
+06-07 15:08:31.324 11055 11055 I flutter : [BMS] TX 2B 52 41 41 30 41 30 33 -> fff6 (withoutResponse)
+06-07 15:08:31.328 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:31.523 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA0802 (8b) phase=bootstrap
+06-07 15:08:31.524 11055 11055 I flutter : [BMS] TX 2B 52 41 41 30 38 30 32 -> fff6 (withoutResponse)
+06-07 15:08:31.675 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:31.675 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:31.676 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:31.676 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:31.676 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:31.724 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA0C02 (8b) phase=bootstrap
+06-07 15:08:31.725 11055 11055 I flutter : [BMS] TX 2B 52 41 41 30 43 30 32 -> fff6 (withoutResponse)
+06-07 15:08:31.868 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:31.868 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:31.869 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:31.869 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:31.869 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:31.870 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:31.924 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA0403 (8b) phase=bootstrap
+06-07 15:08:31.925 11055 11055 I flutter : [BMS] TX 2B 52 41 41 30 34 30 33 -> fff6 (withoutResponse)
+06-07 15:08:32.074 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 38 30 32
+06-07 15:08:32.074 11055 11055 I flutter : [BMS] RX ascii +RAA0802
+06-07 15:08:32.074 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 30 38 30 32
+06-07 15:08:32.074 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 30 38 30 32
+06-07 15:08:32.075 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 30 38 30 32
+06-07 15:08:32.075 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 38 30 32
+06-07 15:08:32.075 11055 11055 I flutter : [BMS] RX ascii +RAA0802
+06-07 15:08:32.075 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 30 38 30 32
+06-07 15:08:32.075 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 30 38 30 32
+06-07 15:08:32.080 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:32.123 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA3C03 (8b) phase=bootstrap
+06-07 15:08:32.124 11055 11055 I flutter : [BMS] TX 2B 52 41 41 33 43 30 33 -> fff6 (withoutResponse)
+06-07 15:08:32.272 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 43 30 32
+06-07 15:08:32.272 11055 11055 I flutter : [BMS] RX ascii +RAA0C02
+06-07 15:08:32.272 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 30 43 30 32
+06-07 15:08:32.272 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 30 43 30 32
+06-07 15:08:32.272 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 30 43 30 32
+06-07 15:08:32.272 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 43 30 32
+06-07 15:08:32.272 11055 11055 I flutter : [BMS] RX ascii +RAA0C02
+06-07 15:08:32.272 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 30 43 30 32
+06-07 15:08:32.272 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 30 43 30 32
+06-07 15:08:32.273 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:32.323 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA0603 (8b) phase=bootstrap
+06-07 15:08:32.323 11055 11055 I flutter : [BMS] TX 2B 52 41 41 30 36 30 33 -> fff6 (withoutResponse)
+06-07 15:08:32.468 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:32.468 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:32.469 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:32.469 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:32.469 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:32.472 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:32.523 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA1802 (8b) phase=bootstrap
+06-07 15:08:32.524 11055 11055 I flutter : [BMS] TX 2B 52 41 41 31 38 30 32 -> fff6 (withoutResponse)
+06-07 15:08:32.671 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:32.671 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:32.672 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:32.672 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:32.672 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:32.691 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:32.723 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA1A02 (8b) phase=bootstrap
+06-07 15:08:32.723 11055 11055 I flutter : [BMS] TX 2B 52 41 41 31 41 30 32 -> fff6 (withoutResponse)
+06-07 15:08:32.870 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:32.870 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:32.870 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:32.870 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:32.870 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:32.923 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA2802 (8b) phase=bootstrap
+06-07 15:08:32.924 11055 11055 I flutter : [BMS] TX 2B 52 41 41 32 38 30 32 -> fff6 (withoutResponse)
+06-07 15:08:33.074 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 36 30 33
+06-07 15:08:33.074 11055 11055 I flutter : [BMS] RX ascii +RAA0603
+06-07 15:08:33.074 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 30 36 30 33
+06-07 15:08:33.074 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 30 36 30 33
+06-07 15:08:33.075 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 30 36 30 33
+06-07 15:08:33.075 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 36 30 33
+06-07 15:08:33.075 11055 11055 I flutter : [BMS] RX ascii +RAA0603
+06-07 15:08:33.075 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 30 36 30 33
+06-07 15:08:33.075 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 30 36 30 33
+06-07 15:08:33.079 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:33.123 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA4802 (8b) phase=bootstrap
+06-07 15:08:33.124 11055 11055 I flutter : [BMS] TX 2B 52 41 41 34 38 30 32 -> fff6 (withoutResponse)
+06-07 15:08:33.221 11277 11277 D BluetoothGatt: close()
+06-07 15:08:33.221 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=98
+06-07 15:08:33.269 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:33.270 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:33.270 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:33.270 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:33.271 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:33.323 11055 11055 I flutter : [BMS] TX Lion ASCII +RAA0202 (8b) phase=steady
+06-07 15:08:33.324 11055 11055 I flutter : [BMS] TX 2B 52 41 41 30 32 30 32 -> fff6 (withoutResponse)
+06-07 15:08:33.473 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 31 38 30 32
+06-07 15:08:33.473 11055 11055 I flutter : [BMS] RX ascii +RAA1802
+06-07 15:08:33.473 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 31 38 30 32
+06-07 15:08:33.473 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 31 38 30 32
+06-07 15:08:33.474 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 31 38 30 32
+06-07 15:08:33.474 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 31 38 30 32
+06-07 15:08:33.474 11055 11055 I flutter : [BMS] RX ascii +RAA1802
+06-07 15:08:33.474 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 31 38 30 32
+06-07 15:08:33.474 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 31 38 30 32
+06-07 15:08:33.477 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:33.523 11055 11055 I flutter : [BMS] Protocol probe failed after 16 polls (lionMode=true, echoCount=28)
+06-07 15:08:33.867 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:33.867 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:33.867 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:33.867 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:33.867 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:34.072 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 31 41 30 32
+06-07 15:08:34.072 11055 11055 I flutter : [BMS] RX ascii +RAA1A02
+06-07 15:08:34.072 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 31 41 30 32
+06-07 15:08:34.072 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 31 41 30 32
+06-07 15:08:34.073 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 31 41 30 32
+06-07 15:08:34.073 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 31 41 30 32
+06-07 15:08:34.073 11055 11055 I flutter : [BMS] RX ascii +RAA1A02
+06-07 15:08:34.073 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 31 41 30 32
+06-07 15:08:34.073 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 31 41 30 32
+06-07 15:08:34.090 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:34.092 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:34.156 11277 11277 D BluetoothGatt: close()
+06-07 15:08:34.157 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=99
+06-07 15:08:34.270 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:34.270 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:34.271 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:34.271 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:34.271 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:34.449 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:BE:7A, auto: true
+06-07 15:08:34.449 11277 11277 D BluetoothGatt: registerApp()
+06-07 15:08:34.450 11277 11277 D BluetoothGatt: registerApp() - UUID=5f204298-cfc8-48f5-ad4c-e6b4e46f676f
+06-07 15:08:34.452 11277 18701 D BluetoothGatt: onClientRegistered() - status=0 clientIf=105
+06-07 15:08:34.468 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 34 38 30 32
+06-07 15:08:34.469 11055 11055 I flutter : [BMS] RX ascii +RAA4802
+06-07 15:08:34.469 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 34 38 30 32
+06-07 15:08:34.469 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 34 38 30 32
+06-07 15:08:34.470 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 34 38 30 32
+06-07 15:08:34.470 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 34 38 30 32
+06-07 15:08:34.470 11055 11055 I flutter : [BMS] RX ascii +RAA4802
+06-07 15:08:34.470 11055 11055 I flutter : [BMS] RX SmartBat-native (8b): 2B 52 41 41 34 38 30 32
+06-07 15:08:34.470 11055 11055 I flutter : [BMS] SmartBat unknown frame: 2B 52 41 41 34 38 30 32
+06-07 15:08:34.473 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:08:34.670 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:34.670 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:34.671 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:34.671 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:34.671 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:34.869 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:34.869 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:34.870 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 30 32 30 32
+06-07 15:08:34.870 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:34.870 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:35.074 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:35.074 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:35.075 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:35.075 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:35.075 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:35.269 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:35.270 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:35.270 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:35.270 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:35.270 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:35.362 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:31:3E, auto: true
+06-07 15:08:35.363 11277 11277 D BluetoothGatt: registerApp()
+06-07 15:08:35.363 11277 11277 D BluetoothGatt: registerApp() - UUID=cedb5fe1-0681-4e33-8c86-27f9631ca7b9
+06-07 15:08:35.367 11277 18701 D BluetoothGatt: onClientRegistered() - status=0 clientIf=106
+06-07 15:08:35.472 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:35.472 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:35.473 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 30 32 30 32
+06-07 15:08:35.473 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:35.473 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:35.671 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:35.671 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:35.672 11055 11055 I flutter : [BMS] RX read fff4: DD A5 04 00 FC FF 77
+06-07 15:08:35.672 11055 11055 I flutter : [BMS] RX chunk DD A5 04 00 FC FF 77
+06-07 15:08:35.673 11055 11055 I flutter : [BMS] Ignoring echo frame: DD A5 04 00 FC FF 77
+06-07 15:08:35.869 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:35.869 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:35.870 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 30 32 30 32
+06-07 15:08:35.870 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:35.870 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:36.070 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:36.070 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:36.071 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 30 32 30 32
+06-07 15:08:36.071 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:36.071 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:36.271 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:36.271 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:36.272 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 30 32 30 32
+06-07 15:08:36.272 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:36.272 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:36.470 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:36.470 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32
+06-07 15:08:36.471 11055 11055 I flutter : [BMS] RX read fff6: 2B 52 41 41 30 32 30 32
+06-07 15:08:36.471 11055 11055 I flutter : [BMS] RX chunk 2B 52 41 41 30 32 30 32
+06-07 15:08:36.471 11055 11055 I flutter : [BMS] Ignoring command echo: 2B 52 41 41 30 32 30 32

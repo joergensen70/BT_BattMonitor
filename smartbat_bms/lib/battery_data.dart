@@ -11,6 +11,8 @@ class BatteryData {
   final bool chargeFet;
   final bool dischargeFet;
   final int protectionStatus;
+  final int? atteMin;   // minutes to empty  (+RD,18)
+  final int? attfMin;   // minutes to full   (+RD,1A)
 
   const BatteryData({
     required this.voltage,
@@ -25,6 +27,8 @@ class BatteryData {
     required this.chargeFet,
     required this.dischargeFet,
     required this.protectionStatus,
+    this.atteMin,
+    this.attfMin,
   });
 
   double get power => voltage * current.abs();
@@ -45,6 +49,8 @@ class BatteryData {
       chargeFet: chargeFet,
       dischargeFet: dischargeFet,
       protectionStatus: protectionStatus,
+      atteMin: atteMin,
+      attfMin: attfMin,
     );
   }
 

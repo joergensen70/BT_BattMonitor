@@ -1,0 +1,12 @@
+package com.fasterxml.jackson.databind;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import java.io.IOException;
+
+/* JADX INFO: loaded from: classes.dex */
+public interface JsonSerializable {
+    void serialize(JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException;
+
+    void serializeWithType(JsonGenerator jsonGenerator, SerializerProvider serializerProvider, TypeSerializer typeSerializer) throws IOException;
+}

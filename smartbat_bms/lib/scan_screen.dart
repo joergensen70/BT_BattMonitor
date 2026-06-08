@@ -15,6 +15,7 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   final List<ScanResult> _results = [];
   bool _isScanning = false;
+  String? _error;
   StreamSubscription? _scanSub;
   StreamSubscription? _stateSub;
 
@@ -43,13 +44,20 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _startScan() async {
+    final adapterState = await FlutterBluePlus.adapterState.first;
+    if (adapterState != BluetoothAdapterState.on) {
+      setState(() {
+        _error = 'Bluetooth ist nicht eingeschaltet.';
+      });
+      return;
+    }
+
     await _requestPermissions();
     setState(() {
+      _error = null;
       _results.clear();
       _isScanning = true;
     });
-
-    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
 
     _scanSub?.cancel();
     _scanSub = FlutterBluePlus.scanResults.listen((results) {
@@ -69,8 +77,18 @@ class _ScanScreenState extends State<ScanScreen> {
       });
     });
 
-    await FlutterBluePlus.isScanning.where((s) => !s).first;
-    if (mounted) setState(() => _isScanning = false);
+    try {
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
+      await FlutterBluePlus.isScanning.where((s) => !s).first;
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Scan fehlgeschlagen: $e';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isScanning = false);
+    }
   }
 
   Future<void> _connect(BluetoothDevice device) async {
@@ -99,10 +117,61 @@ class _ScanScreenState extends State<ScanScreen> {
       ),
       body: Column(
         children: [
+          _buildStatusBanner(),
           _buildScanButton(),
           Expanded(child: _buildDeviceList()),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatusBanner() {
+    return StreamBuilder<BluetoothAdapterState>(
+      stream: FlutterBluePlus.adapterState,
+      initialData: FlutterBluePlus.adapterStateNow,
+      builder: (context, snapshot) {
+        final state = snapshot.data ?? BluetoothAdapterState.unknown;
+        final isOn = state == BluetoothAdapterState.on;
+        final text = _error ?? (isOn
+            ? 'Bereit: Scan starten, Geraet waehlen, dann Verbindungstest.'
+            : 'Bluetooth ist derzeit nicht aktiv.');
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _error != null
+                ? const Color(0xFF3D0000)
+                : isOn
+                    ? const Color(0xFF10261A)
+                    : const Color(0xFF3A2A00),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                _error != null
+                    ? Icons.error_outline
+                    : isOn
+                        ? Icons.bluetooth_searching
+                        : Icons.bluetooth_disabled,
+                color: _error != null
+                    ? Colors.redAccent
+                    : isOn
+                        ? const Color(0xFF00C853)
+                        : Colors.orangeAccent,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  text,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -141,7 +210,7 @@ class _ScanScreenState extends State<ScanScreen> {
             const Icon(Icons.bluetooth_searching, size: 72, color: Colors.white24),
             const SizedBox(height: 16),
             Text(
-              _isScanning ? 'Searching for devices…' : 'Tap Scan to find your battery',
+              _isScanning ? 'Suche nach BLE-Geraeten…' : 'Mit Scan suchst du nach deinem BMS oder Testgeraet',
               style: const TextStyle(color: Colors.white54, fontSize: 15),
             ),
           ],

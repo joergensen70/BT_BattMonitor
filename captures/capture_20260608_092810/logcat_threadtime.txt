@@ -1,0 +1,109 @@
+--------- beginning of main
+06-08 09:29:01.580 11277 11277 D BluetoothGatt: close()
+06-08 09:29:01.581 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=187
+06-08 09:29:01.665 11277 11277 D BluetoothGatt: close()
+06-08 09:29:01.666 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=188
+06-08 09:29:02.707 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-08 09:29:02.707 11277 11277 D BluetoothGatt: registerApp()
+06-08 09:29:02.707 11277 11277 D BluetoothGatt: registerApp() - UUID=4a436db3-817d-4b8f-b9a8-c81c58a3a51d
+06-08 09:29:02.710 11277 15618 D BluetoothGatt: onClientRegistered() - status=0 clientIf=193
+06-08 09:29:02.909 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:BE:7A, auto: true
+06-08 09:29:02.909 11277 11277 D BluetoothGatt: registerApp()
+06-08 09:29:02.909 11277 11277 D BluetoothGatt: registerApp() - UUID=84c69159-c381-477a-85aa-146eae6f8f4c
+06-08 09:29:02.912 11277 15618 D BluetoothGatt: onClientRegistered() - status=0 clientIf=194
+06-08 09:29:03.297 11277 11277 D BluetoothGatt: close()
+06-08 09:29:03.298 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=189
+06-08 09:29:04.464 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:31:3E, auto: true
+06-08 09:29:04.464 11277 11277 D BluetoothGatt: registerApp()
+06-08 09:29:04.464 11277 11277 D BluetoothGatt: registerApp() - UUID=eeb27169-5832-4827-a9ca-e76091df6201
+06-08 09:29:04.467 11277 15618 D BluetoothGatt: onClientRegistered() - status=0 clientIf=195
+06-08 09:29:13.931 15250 15250 D BluetoothGatt: close()
+06-08 09:29:13.932 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=190
+06-08 09:29:14.250 15250 15250 D BluetoothGatt: close()
+06-08 09:29:14.251 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=191
+06-08 09:29:14.284 15250 15250 D BluetoothGatt: close()
+06-08 09:29:14.285 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=192
+06-08 09:29:15.212 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:BE:7A, auto: true
+06-08 09:29:15.212 15250 15250 D BluetoothGatt: registerApp()
+06-08 09:29:15.212 15250 15250 D BluetoothGatt: registerApp() - UUID=919203cf-1d76-471b-a381-e07ae27dfa7f
+06-08 09:29:15.217 15250  7404 D BluetoothGatt: onClientRegistered() - status=0 clientIf=196
+06-08 09:29:15.485 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:31:3E, auto: true
+06-08 09:29:15.485 15250 15250 D BluetoothGatt: registerApp()
+06-08 09:29:15.485 15250 15250 D BluetoothGatt: registerApp() - UUID=f9d3463f-5bc1-4fd9-8b60-5e6fe8d60833
+06-08 09:29:15.489 15250  7404 D BluetoothGatt: onClientRegistered() - status=0 clientIf=197
+06-08 09:29:15.644 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-08 09:29:15.644 15250 15250 D BluetoothGatt: registerApp()
+06-08 09:29:15.644 15250 15250 D BluetoothGatt: registerApp() - UUID=6de8ce02-6739-4a15-992c-4173babd6030
+06-08 09:29:15.647 15250  7404 D BluetoothGatt: onClientRegistered() - status=0 clientIf=198
+06-08 09:30:32.742 11277 11277 D BluetoothGatt: close()
+06-08 09:30:32.744 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=193
+06-08 09:30:32.912 11277 11277 D BluetoothGatt: close()
+06-08 09:30:32.912 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=194
+06-08 09:30:33.763 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-08 09:30:33.763 11277 11277 D BluetoothGatt: registerApp()
+06-08 09:30:33.763 11277 11277 D BluetoothGatt: registerApp() - UUID=1925680e-6b67-4c97-821c-59ac49540d74
+06-08 09:30:33.766 11277 11287 D BluetoothGatt: onClientRegistered() - status=0 clientIf=199
+06-08 09:30:34.091 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:BE:7A, auto: true
+06-08 09:30:34.091 11277 11277 D BluetoothGatt: registerApp()
+06-08 09:30:34.091 11277 11277 D BluetoothGatt: registerApp() - UUID=b6b230ab-aaa2-4958-a516-8e6fb8bdeecd
+06-08 09:30:34.095 11277 11287 D BluetoothGatt: onClientRegistered() - status=0 clientIf=200
+06-08 09:30:34.467 11277 11277 D BluetoothGatt: close()
+06-08 09:30:34.468 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=195
+06-08 09:30:35.600 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:31:3E, auto: true
+06-08 09:30:35.600 11277 11277 D BluetoothGatt: registerApp()
+06-08 09:30:35.600 11277 11277 D BluetoothGatt: registerApp() - UUID=e1144a84-5931-4a58-bea5-f4c777c7a7d3
+06-08 09:30:35.604 11277 11287 D BluetoothGatt: onClientRegistered() - status=0 clientIf=201
+06-08 09:30:45.218 15250 15250 D BluetoothGatt: close()
+06-08 09:30:45.219 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=196
+06-08 09:30:45.489 15250 15250 D BluetoothGatt: close()
+06-08 09:30:45.490 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=197
+06-08 09:30:45.647 15250 15250 D BluetoothGatt: close()
+06-08 09:30:45.648 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=198
+06-08 09:30:46.444 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:BE:7A, auto: true
+06-08 09:30:46.444 15250 15250 D BluetoothGatt: registerApp()
+06-08 09:30:46.444 15250 15250 D BluetoothGatt: registerApp() - UUID=b4f4c78e-9f8a-4d96-8157-6206bb95bcce
+06-08 09:30:46.447 15250  7404 D BluetoothGatt: onClientRegistered() - status=0 clientIf=202
+06-08 09:30:46.641 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-08 09:30:46.641 15250 15250 D BluetoothGatt: registerApp()
+06-08 09:30:46.641 15250 15250 D BluetoothGatt: registerApp() - UUID=90679895-c252-4bd6-acd4-9107bb71a58a
+06-08 09:30:46.645 15250  7404 D BluetoothGatt: onClientRegistered() - status=0 clientIf=203
+06-08 09:30:46.760 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:31:3E, auto: true
+06-08 09:30:46.760 15250 15250 D BluetoothGatt: registerApp()
+06-08 09:30:46.760 15250 15250 D BluetoothGatt: registerApp() - UUID=d58d0c0b-c937-4345-ac85-2ba118faa088
+06-08 09:30:46.762 15250  7404 D BluetoothGatt: onClientRegistered() - status=0 clientIf=204
+06-08 09:32:03.781 11277 11277 D BluetoothGatt: close()
+06-08 09:32:03.782 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=199
+06-08 09:32:04.096 11277 11277 D BluetoothGatt: close()
+06-08 09:32:04.097 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=200
+06-08 09:32:05.022 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-08 09:32:05.022 11277 11277 D BluetoothGatt: registerApp()
+06-08 09:32:05.022 11277 11277 D BluetoothGatt: registerApp() - UUID=6111cf03-a980-4e4d-9abc-b2594e8fded0
+06-08 09:32:05.028 11277 15618 D BluetoothGatt: onClientRegistered() - status=0 clientIf=205
+06-08 09:32:05.177 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:BE:7A, auto: true
+06-08 09:32:05.177 11277 11277 D BluetoothGatt: registerApp()
+06-08 09:32:05.177 11277 11277 D BluetoothGatt: registerApp() - UUID=cc9cbb0a-8bc1-4a97-b143-abd86109c645
+06-08 09:32:05.179 11277 15618 D BluetoothGatt: onClientRegistered() - status=0 clientIf=206
+06-08 09:32:05.603 11277 11277 D BluetoothGatt: close()
+06-08 09:32:05.604 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=201
+06-08 09:32:06.873 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:31:3E, auto: true
+06-08 09:32:06.873 11277 11277 D BluetoothGatt: registerApp()
+06-08 09:32:06.873 11277 11277 D BluetoothGatt: registerApp() - UUID=8b5b4733-09bb-40b7-a2cb-47a5fb114b67
+06-08 09:32:06.877 11277 15618 D BluetoothGatt: onClientRegistered() - status=0 clientIf=207
+06-08 09:32:16.479 15250 15250 D BluetoothGatt: close()
+06-08 09:32:16.481 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=202
+06-08 09:32:16.644 15250 15250 D BluetoothGatt: close()
+06-08 09:32:16.645 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=203
+06-08 09:32:16.762 15250 15250 D BluetoothGatt: close()
+06-08 09:32:16.763 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=204
+06-08 09:32:17.706 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-08 09:32:17.706 15250 15250 D BluetoothGatt: registerApp()
+06-08 09:32:17.706 15250 15250 D BluetoothGatt: registerApp() - UUID=4d3d37a2-2edf-40e1-b263-49ab519a2c5a
+06-08 09:32:17.709 15250  7404 D BluetoothGatt: onClientRegistered() - status=0 clientIf=208
+06-08 09:32:17.728 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:BE:7A, auto: true
+06-08 09:32:17.729 15250 15250 D BluetoothGatt: registerApp()
+06-08 09:32:17.729 15250 15250 D BluetoothGatt: registerApp() - UUID=646f0395-7725-434e-ad94-cc5be9d42340
+06-08 09:32:17.731 15250  7404 D BluetoothGatt: onClientRegistered() - status=0 clientIf=209
+06-08 09:32:17.996 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:31:3E, auto: true
+06-08 09:32:17.996 15250 15250 D BluetoothGatt: registerApp()
+06-08 09:32:17.996 15250 15250 D BluetoothGatt: registerApp() - UUID=124bd81e-7a89-4b31-b75d-9dc17bc45342
+06-08 09:32:17.998 15250  7404 D BluetoothGatt: onClientRegistered() - status=0 clientIf=210

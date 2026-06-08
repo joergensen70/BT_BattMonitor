@@ -1,0 +1,214 @@
+--------- beginning of main
+06-07 15:18:01.401 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=9
+06-07 15:18:01.402 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=9
+06-07 15:18:06.714 18902 18902 I flutter : [BMS] Connecting to SmartBat-A19681
+06-07 15:18:06.738 18902 18902 D BluetoothGatt: connect() - device: XX:XX:XX:XX:F1:F2, auto: false
+06-07 15:18:06.738 18902 18902 D BluetoothGatt: registerApp()
+06-07 15:18:06.738 18902 18902 D BluetoothGatt: registerApp() - UUID=9569c741-46aa-45d2-9ef2-e80cbd103b31
+06-07 15:18:06.739 18902 18917 D BluetoothGatt: onClientRegistered() - status=0 clientIf=149
+06-07 15:18:07.197 15341 15517 W BtGatt.GattService: pkgName : com.smartbat.bms
+06-07 15:18:07.198 18902 18917 D BluetoothGatt: onClientConnectionState() - status=0 clientIf=149 connected=true device=XX:XX:XX:XX:F1:F2
+06-07 15:18:07.552 18902 18902 D BluetoothGatt: configureMTU() - device: XX:XX:XX:XX:F1:F2 mtu: 512
+06-07 15:18:07.625 18902 18917 D BluetoothGatt: onConfigureMTU() - Device=XX:XX:XX:XX:F1:F2 mtu=23 status=0
+06-07 15:18:07.626 18902 18902 D BluetoothGatt: discoverServices() - device: XX:XX:XX:XX:F1:F2
+06-07 15:18:07.628 18902 18917 D BluetoothGatt: onSearchComplete() = address=XX:XX:XX:XX:F1:F2 status=0
+06-07 15:18:07.636 18902 18902 D BluetoothGatt: setCharacteristicNotification() - uuid: 00002a05-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:18:07.722 18902 18902 I flutter : [BMS] Discovered 4 services
+06-07 15:18:07.722 18902 18902 I flutter : [BMS] Service 1800 with 5 characteristics
+06-07 15:18:07.722 18902 18902 I flutter : [BMS] Service 1801 with 1 characteristics
+06-07 15:18:07.723 18902 18902 I flutter : [BMS] Service 180a with 9 characteristics
+06-07 15:18:07.723 18902 18902 I flutter : [BMS] Service fff0 with 6 characteristics
+06-07 15:18:07.723 18902 18902 I flutter : [BMS] Characteristic fff1 R:true W:true N:false
+06-07 15:18:07.723 18902 18902 I flutter : [BMS] Characteristic fff2 R:true W:false N:false
+06-07 15:18:07.723 18902 18902 I flutter : [BMS] Characteristic fff3 R:false W:true N:false
+06-07 15:18:07.723 18902 18902 I flutter : [BMS] Characteristic fff4 R:true W:true N:true
+06-07 15:18:07.724 18902 18902 I flutter : [BMS] Characteristic fff5 R:true W:false N:false
+06-07 15:18:07.724 18902 18902 I flutter : [BMS] Characteristic fff6 R:true W:true N:true
+06-07 15:18:07.725 18902 18902 I flutter : [BMS] Write candidates: fff3, fff6, fff4
+06-07 15:18:07.725 18902 18902 I flutter : [BMS] Notify candidates: fff4, fff6
+06-07 15:18:07.726 18902 18902 I flutter : [BMS] Read candidates: fff1, fff2, fff4, fff5, fff6
+06-07 15:18:07.726 18902 18902 I flutter : [BMS] Selected chars: write=fff3, notify=fff4, altWrite=fff6
+06-07 15:18:07.726 18902 18902 D BluetoothGatt: setCharacteristicNotification() - uuid: 0000fff4-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:18:07.852 18902 18902 I flutter : [BMS] Notifications enabled on fff4
+06-07 15:18:07.853 18902 18902 D BluetoothGatt: setCharacteristicNotification() - uuid: 0000fff6-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:18:07.945 18902 18902 I flutter : [BMS] Notifications enabled on fff6
+06-07 15:18:08.035 18902 18902 I flutter : [BMS] INIT READ fff1 (1b): 01
+06-07 15:18:08.124 18902 18902 I flutter : [BMS] INIT READ fff2 (1b): 02
+06-07 15:18:08.218 18902 18902 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.218 18902 18902 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.218 18902 18902 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.220 18902 18902 I flutter : [BMS] INIT READ fff4 (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.220 18902 18902 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.220 18902 18902 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.220 18902 18902 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.306 18902 18902 I flutter : [BMS] INIT READ fff5 (5b): 01 02 03 04 05
+06-07 15:18:08.306 18902 18902 I flutter : [BMS] RX chunk 01 02 03 04 05
+06-07 15:18:08.306 18902 18902 I flutter : [BMS] RX SmartBat-native (5b): 01 02 03 04 05
+06-07 15:18:08.306 18902 18902 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 
+06-07 15:18:08.396 18902 18902 I flutter : [BMS] RX chunk 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.396 18902 18902 I flutter : [BMS] RX SmartBat-native (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.396 18902 18902 I flutter : [BMS] SmartBat heartbeat frame – bytes 5+: 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.397 18902 18902 I flutter : [BMS] INIT READ fff6 (19b): 01 02 03 04 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+06-07 15:18:08.397 18902 18902 I flutter : [BMS] Polling interval set to 60 ms
+06-07 15:18:08.397 18902 18902 I flutter : [BMS] Switching to LionCheck command set (SmartBat-native frames detected during init reads)
+06-07 15:18:08.398 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA1002 (8b) phase=bootstrap
+06-07 15:18:08.398 18902 18902 I flutter : [BMS] TX 2B 52 41 41 31 30 30 32 -> fff3 (withResponse)
+06-07 15:18:08.458 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA0A03 (8b) phase=bootstrap
+06-07 15:18:08.459 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 41 30 33 -> fff3 (withResponse)
+06-07 15:18:08.518 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA0802 (8b) phase=bootstrap
+06-07 15:18:08.519 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 38 30 32 -> fff3 (withResponse)
+06-07 15:18:08.525 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=13, length=8
+06-07 15:18:08.536 18902 18902 I flutter : [BMS] Marking fff3 as unsuitable for long writes after invalid-length error
+06-07 15:18:08.537 18902 18902 I flutter : [BMS] Write mode failed on fff3: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:18:08.537 18902 18902 I flutter : [BMS] Write failed on fff3: Exception: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:18:08.537 18902 18902 I flutter : [BMS] TX 2B 52 41 41 31 30 30 32 -> fff6 (withoutResponse)
+06-07 15:18:08.579 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA0C02 (8b) phase=bootstrap
+06-07 15:18:08.579 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 43 30 32 -> fff6 (withoutResponse)
+06-07 15:18:08.615 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=13, length=8
+06-07 15:18:08.616 18902 18902 I flutter : [BMS] Marking fff3 as unsuitable for long writes after invalid-length error
+06-07 15:18:08.616 18902 18902 I flutter : [BMS] Write mode failed on fff3: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:18:08.616 18902 18902 I flutter : [BMS] Write failed on fff3: Exception: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:18:08.617 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 41 30 33 -> fff6 (withoutResponse)
+06-07 15:18:08.638 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA0403 (8b) phase=bootstrap
+06-07 15:18:08.638 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 34 30 33 -> fff6 (withoutResponse)
+06-07 15:18:08.699 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA3C03 (8b) phase=bootstrap
+06-07 15:18:08.700 18902 18902 I flutter : [BMS] TX 2B 52 41 41 33 43 30 33 -> fff6 (withoutResponse)
+06-07 15:18:08.707 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=13, length=8
+06-07 15:18:08.724 18902 18902 I flutter : [BMS] Marking fff3 as unsuitable for long writes after invalid-length error
+06-07 15:18:08.724 18902 18902 I flutter : [BMS] Write mode failed on fff3: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:18:08.724 18902 18902 I flutter : [BMS] Write failed on fff3: Exception: FlutterBluePlusException | writeCharacteristic | android-code: 13 | GATT_INVALID_ATTRIBUTE_LENGTH
+06-07 15:18:08.725 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 38 30 32 -> fff6 (withoutResponse)
+06-07 15:18:08.727 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:08.727 18902 18902 I flutter : [BMS] Polling interval set to 1000 ms
+06-07 15:18:08.729 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:08.741 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:08.742 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:08.744 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:08.746 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:09.729 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA0603 (8b) phase=bootstrap
+06-07 15:18:09.730 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 36 30 33 -> fff6 (withoutResponse)
+06-07 15:18:09.735 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:10.587 18902 18917 D BluetoothGatt: onConnectionUpdated() - Device=XX:XX:XX:XX:F1:F2 interval=80 latency=1 timeout=100 status=0
+06-07 15:18:10.729 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA1802 (8b) phase=bootstrap
+06-07 15:18:10.730 18902 18902 I flutter : [BMS] TX 2B 52 41 41 31 38 30 32 -> fff6 (withoutResponse)
+06-07 15:18:10.736 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:11.729 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA1A02 (8b) phase=bootstrap
+06-07 15:18:11.729 18902 18902 I flutter : [BMS] TX 2B 52 41 41 31 41 30 32 -> fff6 (withoutResponse)
+06-07 15:18:11.734 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:12.729 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA2802 (8b) phase=bootstrap
+06-07 15:18:12.730 18902 18902 I flutter : [BMS] TX 2B 52 41 41 32 38 30 32 -> fff6 (withoutResponse)
+06-07 15:18:12.735 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:13.728 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA4802 (8b) phase=bootstrap
+06-07 15:18:13.729 18902 18902 I flutter : [BMS] TX 2B 52 41 41 34 38 30 32 -> fff6 (withoutResponse)
+06-07 15:18:13.733 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:14.729 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA0202 (8b) phase=steady
+06-07 15:18:14.730 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 32 30 32 -> fff6 (withoutResponse)
+06-07 15:18:14.736 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:15.729 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA0202 (8b) phase=steady
+06-07 15:18:15.730 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 32 30 32 -> fff6 (withoutResponse)
+06-07 15:18:15.735 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:16.512 15250 15250 D BluetoothGatt: close()
+06-07 15:18:16.512 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=143
+06-07 15:18:16.680 15250 15250 D BluetoothGatt: close()
+06-07 15:18:16.681 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=144
+06-07 15:18:16.732 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA0A03 (8b) phase=steady
+06-07 15:18:16.733 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 41 30 33 -> fff6 (withoutResponse)
+06-07 15:18:16.739 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:16.863 15250 15250 D BluetoothGatt: close()
+06-07 15:18:16.863 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=145
+06-07 15:18:17.702 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:BE:7A, auto: true
+06-07 15:18:17.702 15250 15250 D BluetoothGatt: registerApp()
+06-07 15:18:17.702 15250 15250 D BluetoothGatt: registerApp() - UUID=40112a43-6a83-4ff3-a1f2-54288a0f52ac
+06-07 15:18:17.704 15250 22509 D BluetoothGatt: onClientRegistered() - status=0 clientIf=151
+06-07 15:18:17.719 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-07 15:18:17.719 15250 15250 D BluetoothGatt: registerApp()
+06-07 15:18:17.719 15250 15250 D BluetoothGatt: registerApp() - UUID=15726846-7975-45d7-8eb2-4e1c56681a46
+06-07 15:18:17.722 15250 22509 D BluetoothGatt: onClientRegistered() - status=0 clientIf=152
+06-07 15:18:17.729 18902 18902 I flutter : [BMS] TX Lion ASCII +RAA0802 (8b) phase=steady
+06-07 15:18:17.730 18902 18902 I flutter : [BMS] TX 2B 52 41 41 30 38 30 32 -> fff6 (withoutResponse)
+06-07 15:18:17.735 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:F1:F2, status=0, length=8
+06-07 15:18:17.909 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:31:3E, auto: true
+06-07 15:18:17.909 15250 15250 D BluetoothGatt: registerApp()
+06-07 15:18:17.909 15250 15250 D BluetoothGatt: registerApp() - UUID=7d1938b4-a83c-4dc0-a811-51f88b90cd36
+06-07 15:18:17.912 15250 22509 D BluetoothGatt: onClientRegistered() - status=0 clientIf=153
+06-07 15:18:18.729 18902 18902 I flutter : [BMS] Protocol probe failed after 16 polls (lionMode=true, echoCount=0)
+06-07 15:18:22.419 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:18:22.454 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:18:22.466 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:18:22.624 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:18:22.825 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:18:22.897 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:18:23.079 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:18:23.254 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:18:23.437 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.439 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.440 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.441 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.442 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.444 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.445 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.445 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=148
+06-07 15:18:23.617 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.618 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.619 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.619 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.620 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.620 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.621 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.621 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.621 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=103
+06-07 15:18:23.795 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.796 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.797 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.798 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.798 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.799 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.799 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.800 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.801 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.801 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.802 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=117
+06-07 15:18:23.977 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.979 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.981 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.982 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.982 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.983 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.984 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:23.985 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=145
+06-07 15:18:24.245 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.245 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.246 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.246 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.246 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.247 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.247 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.247 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.248 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.248 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.248 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:24.249 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=179
+06-07 15:18:24.527 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:18:26.880 11277 11277 D BluetoothGatt: close()
+06-07 15:18:26.880 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=146
+06-07 15:18:27.984 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-07 15:18:27.984 11277 11277 D BluetoothGatt: registerApp()
+06-07 15:18:27.984 11277 11277 D BluetoothGatt: registerApp() - UUID=3cfa2e7c-3a2f-4870-a6ea-862cbb4d3398
+06-07 15:18:27.986 11277 15618 D BluetoothGatt: onClientRegistered() - status=0 clientIf=154
+06-07 15:18:37.325 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:18:37.392 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:18:37.750 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:37.751 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:37.752 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:37.753 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:37.754 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:37.754 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=53
+06-07 15:18:38.122 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:18:38.204 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:18:38.388 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:38.389 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:38.389 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:38.390 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:38.391 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:18:38.392 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=193
+06-07 15:18:38.655 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2

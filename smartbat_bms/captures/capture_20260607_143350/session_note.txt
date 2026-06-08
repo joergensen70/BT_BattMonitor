@@ -1,0 +1,4 @@
+﻿Reference battery: A19367
+Observed in original app: 13.600V, 0.000A, 100%, 25.2C, 77.3F
+Serial: 19367
+Connection quality: immediate and stable.

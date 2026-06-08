@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:background="@color/page_bg_color"
+    android:fitsSystemWindows="true"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <com.ys.module.title.TitleBar
+        android:id="@+id/tb_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+    <RelativeLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/DIMEN_90PX">
+        <TextView
+            android:textSize="@dimen/text_size28"
+            android:textColor="@color/title_text_color"
+            android:gravity="center_vertical"
+            android:id="@+id/device_manager_msg_tv"
+            android:paddingLeft="@dimen/DIMEN_25PX"
+            android:layout_width="@dimen/DIMEN_300PX"
+            android:layout_height="@dimen/DIMEN_90PX"
+            android:text="@string/change_connect_device_text"/>
+        <ImageView
+            android:id="@+id/refresh_search_deivce_iv"
+            android:background="@mipmap/refresh_device_able_icon"
+            android:layout_width="@dimen/DIMEN_50PX"
+            android:layout_height="@dimen/DIMEN_50PX"
+            android:layout_marginRight="@dimen/DIMEN_25PX"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"/>
+    </RelativeLayout>
+    <View style="@style/ll_cut_style"/>
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rlc_blue_device"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+</LinearLayout>

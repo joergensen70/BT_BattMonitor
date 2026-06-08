@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <com.ys.module.title.TitleBar
+        android:id="@+id/tb_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+        <com.journeyapps.barcodescanner.DecoratedBarcodeView
+            android:id="@+id/dbv_custom"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:zxing_framing_rect_height="@dimen/DIMEN_450PX"
+            app:zxing_framing_rect_width="@dimen/DIMEN_450PX"
+            app:zxing_preview_scaling_strategy="fitXY"
+            app:zxing_scanner_layout="@layout/barcode_scanner"
+            app:zxing_use_texture_view="true"/>
+    </FrameLayout>
+</LinearLayout>

@@ -1,0 +1,240 @@
+--------- beginning of main
+06-07 15:04:13.215 11055 11055 D BluetoothGatt: connect() - device: XX:XX:XX:XX:54:75, auto: false
+06-07 15:04:13.215 11055 11055 D BluetoothGatt: registerApp()
+06-07 15:04:13.216 11055 11055 D BluetoothGatt: registerApp() - UUID=9b21125e-a0e1-47c5-8de8-1b9bda57cd15
+06-07 15:04:13.216 11055 11067 D BluetoothGatt: onClientRegistered() - status=0 clientIf=86
+06-07 15:04:13.422 15341 15517 W BtGatt.GattService: pkgName : com.smartbat.bms
+06-07 15:04:13.423 11055 11067 D BluetoothGatt: onClientConnectionState() - status=0 clientIf=86 connected=true device=XX:XX:XX:XX:54:75
+06-07 15:04:13.780 11055 11055 D BluetoothGatt: configureMTU() - device: XX:XX:XX:XX:54:75 mtu: 512
+06-07 15:04:13.861 11055 11340 D BluetoothGatt: onConfigureMTU() - Device=XX:XX:XX:XX:54:75 mtu=23 status=0
+06-07 15:04:13.864 11055 11055 D BluetoothGatt: discoverServices() - device: XX:XX:XX:XX:54:75
+06-07 15:04:13.866 11055 11340 D BluetoothGatt: onSearchComplete() = address=XX:XX:XX:XX:54:75 status=0
+06-07 15:04:13.883 11055 11055 D BluetoothGatt: setCharacteristicNotification() - uuid: 00002a05-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:04:13.973 11055 11055 D BluetoothGatt: setCharacteristicNotification() - uuid: 0000fff4-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:04:14.068 11055 11055 D BluetoothGatt: setCharacteristicNotification() - uuid: 0000fff6-0000-1000-8000-00805f9b34fb enable: true
+06-07 15:04:14.209 11055 11340 D BluetoothGatt: onConnectionUpdated() - Device=XX:XX:XX:XX:54:75 interval=144 latency=0 timeout=1000 status=0
+06-07 15:04:16.373 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=13, length=7
+06-07 15:04:16.386 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=7
+06-07 15:04:17.592 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=7
+06-07 15:04:18.282 11055 11340 D BluetoothGatt: onConnectionUpdated() - Device=XX:XX:XX:XX:54:75 interval=80 latency=1 timeout=100 status=0
+06-07 15:04:19.293 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=7
+06-07 15:04:19.976 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=7
+06-07 15:04:20.493 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=7
+06-07 15:04:21.169 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=7
+06-07 15:04:21.577 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:21.595 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:22.170 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:22.185 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:22.376 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:22.978 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:23.173 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:23.190 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:23.378 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:23.774 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:24.374 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:24.572 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:54:75, status=0, length=8
+06-07 15:04:35.884 15250 15250 D BluetoothGatt: close()
+06-07 15:04:35.884 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=80
+06-07 15:04:36.477 15250 15250 D BluetoothGatt: close()
+06-07 15:04:36.477 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=81
+06-07 15:04:36.946 15250 15250 D BluetoothGatt: close()
+06-07 15:04:36.947 15250 15250 D BluetoothGatt: unregisterApp() - mClientIf=82
+06-07 15:04:37.127 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-07 15:04:37.127 15250 15250 D BluetoothGatt: registerApp()
+06-07 15:04:37.127 15250 15250 D BluetoothGatt: registerApp() - UUID=6291c5ff-8917-46f9-acaf-74c30db9ddce
+06-07 15:04:37.130 15250 10028 D BluetoothGatt: onClientRegistered() - status=0 clientIf=87
+06-07 15:04:37.620 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:BE:7A, auto: true
+06-07 15:04:37.620 15250 15250 D BluetoothGatt: registerApp()
+06-07 15:04:37.620 15250 15250 D BluetoothGatt: registerApp() - UUID=7691bb46-9185-450d-a8ca-394014de8677
+06-07 15:04:37.621 15250 10028 D BluetoothGatt: onClientRegistered() - status=0 clientIf=88
+06-07 15:04:37.934 15250 15250 D BluetoothGatt: connect() - device: XX:XX:XX:XX:31:3E, auto: true
+06-07 15:04:37.934 15250 15250 D BluetoothGatt: registerApp()
+06-07 15:04:37.934 15250 15250 D BluetoothGatt: registerApp() - UUID=70f53f81-685c-4fc3-9c5c-e886351eaa75
+06-07 15:04:37.937 15250 10028 D BluetoothGatt: onClientRegistered() - status=0 clientIf=89
+06-07 15:04:46.466 11277 11277 D BluetoothGatt: close()
+06-07 15:04:46.467 11277 11277 D BluetoothGatt: unregisterApp() - mClientIf=83
+06-07 15:04:47.793 11277 11277 D BluetoothGatt: connect() - device: XX:XX:XX:XX:4D:09, auto: true
+06-07 15:04:47.793 11277 11277 D BluetoothGatt: registerApp()
+06-07 15:04:47.793 11277 11277 D BluetoothGatt: registerApp() - UUID=5865b230-a2de-452c-9274-4c5754fbd9f4
+06-07 15:04:47.797 11277 26952 D BluetoothGatt: onClientRegistered() - status=0 clientIf=90
+06-07 15:04:49.609 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=20
+06-07 15:04:49.931 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=20
+06-07 15:04:50.021 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:04:50.099 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=16
+06-07 15:04:50.381 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=139
+06-07 15:04:50.558 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:04:50.639 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=16
+06-07 15:04:50.827 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=195
+06-07 15:04:51.012 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:04:53.598 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=20
+06-07 15:04:53.993 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:04:53.994 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=20
+06-07 15:04:54.154 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=20
+06-07 15:04:54.340 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:04:54.421 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=16
+06-07 15:04:54.700 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=143
+06-07 15:04:54.878 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:04:54.961 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=16
+06-07 15:04:55.324 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:04:55.498 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=48
+06-07 15:04:55.770 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=131
+06-07 15:04:56.044 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:04:56.219 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=53
+06-07 15:04:56.413 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:04:56.432 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=66
+06-07 15:04:56.592 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:04:56.670 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:04:56.671 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=13
+06-07 15:04:56.963 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=8
+06-07 15:04:57.218 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.219 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.220 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.221 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.221 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.221 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.222 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.222 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.222 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.223 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.223 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.223 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.224 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.224 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.224 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.225 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.225 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.225 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.226 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.226 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.226 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.227 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.227 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.227 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.228 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.228 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.229 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.229 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.229 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.230 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.230 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.230 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.231 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.312 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.313 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.314 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.485 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.486 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.487 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.487 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.488 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.489 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.489 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.490 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.491 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.491 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.492 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.492 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.493 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.494 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.495 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.496 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.496 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.497 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.608 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.609 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.610 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.614 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.616 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.617 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.618 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.618 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.619 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.620 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.621 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.621 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.621 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.622 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.622 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.623 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.623 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.623 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.863 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.863 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.864 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.864 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.865 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.865 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.866 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.866 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.867 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.867 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.868 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.868 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.869 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.869 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.870 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.870 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.871 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:57.871 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.474 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.475 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.475 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.475 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.476 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.476 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.476 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.477 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.477 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.477 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.478 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.478 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.479 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.479 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.479 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.480 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.480 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.480 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.842 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.843 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.844 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.847 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.848 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.849 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.850 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.850 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.850 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.851 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.851 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.852 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.852 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.852 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.853 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.853 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.854 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.855 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.955 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.956 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.956 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.956 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.957 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.957 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.957 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.958 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:04:58.958 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=205
+06-07 15:04:59.462 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=13
+06-07 15:04:59.646 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:04:59.865 15250 31218 D BluetoothGatt: onConnectionUpdated() - Device=XX:XX:XX:XX:C7:5A interval=36 latency=0 timeout=400 status=0
+06-07 15:04:59.867 11277 28176 D BluetoothGatt: onConnectionUpdated() - Device=XX:XX:XX:XX:C7:5A interval=36 latency=0 timeout=400 status=0
+06-07 15:04:59.901 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=31
+06-07 15:05:00.001 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:05:00.042 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:05:00.053 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:05:00.054 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:05:02.002 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=22
+06-07 15:05:02.311 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:05:02.312 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:05:02.312 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=229
+06-07 15:05:02.312 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=58
+06-07 15:05:02.434 15341 15517 I BtGatt.GattService: onWriteCharacteristic() - address=XX:XX:XX:XX:C7:5A, status=0, length=2
+06-07 15:05:07.578 11277 28176 D BluetoothGatt: onConnectionUpdated() - Device=XX:XX:XX:XX:C7:5A interval=72 latency=4 timeout=400 status=0
+06-07 15:05:07.578 15250 31218 D BluetoothGatt: onConnectionUpdated() - Device=XX:XX:XX:XX:C7:5A interval=72 latency=4 timeout=400 status=0

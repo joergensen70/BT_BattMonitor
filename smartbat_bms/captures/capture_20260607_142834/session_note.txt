@@ -1,0 +1,4 @@
+﻿Reference battery: A19681 (AI9681)
+Observed in original app: 13.900V, 0.000A, 100%, 24.9C, 76.8F
+Serial: 19681
+Note: connection was interrupted during this session; treat as potentially noisy.

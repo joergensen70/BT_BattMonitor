@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <RelativeLayout
+        android:id="@+id/rl"
+        android:background="@mipmap/devicebg"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/DIMEN_163PX">
+        <TextView
+            android:textSize="@dimen/DIMEN_26PX"
+            android:textColor="@color/while_color"
+            android:id="@+id/tv_device_name"
+            android:paddingLeft="@dimen/DIMEN_200PX"
+            android:paddingTop="@dimen/DIMEN_30PX"
+            android:paddingBottom="@dimen/DIMEN_15PX"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="0dp"
+            android:text="Smart Wallet"/>
+        <TextView
+            android:textSize="@dimen/DIMEN_26PX"
+            android:typeface="serif"
+            android:textColor="#80808c"
+            android:id="@+id/tv_device_mac"
+            android:paddingLeft="@dimen/DIMEN_200PX"
+            android:paddingTop="0dp"
+            android:paddingBottom="@dimen/DIMEN_10PX"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00:00:00:00:00"
+            android:layout_below="@+id/tv_device_name"
+            android:layout_alignLeft="@+id/tv_device_name"/>
+        <TextView
+            android:textSize="@dimen/text_size26"
+            android:textColor="@color/while_color"
+            android:id="@+id/tv_device_rssi"
+            android:paddingRight="@dimen/broder_distance_left_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"/>
+    </RelativeLayout>
+</RelativeLayout>
