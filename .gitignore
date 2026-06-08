@@ -4,6 +4,9 @@
 smartbat_bms/_tmp_bugreport_extract/
 smartbat_bms/_tmp_bugreport.zip
 
+# Release APKs are committed to rel/ for distribution
+# (no ignore for smartbat_bms/rel/)
+
 # Captured bugreport archives and dump folders
 smartbat_bms/captures/
 
