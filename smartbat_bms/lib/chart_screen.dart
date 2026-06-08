@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'battery_data.dart';
 
@@ -86,12 +88,20 @@ class _ChartScreenState extends State<ChartScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     _buffer.addListener(_onData);
   }
 
   @override
   void dispose() {
     _buffer.removeListener(_onData);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     super.dispose();
   }
 
@@ -185,6 +195,17 @@ class _ChartScreenState extends State<ChartScreen> {
     voltMin -= vPad; voltMax += vPad;
     currMin -= cPad; currMax += cPad;
 
+    // Nice axis interval (~5 ticks)
+    double niceInterval(double rangeVal) {
+      if (rangeVal <= 0) return 1.0;
+      final raw = rangeVal / 5;
+      final magnitude = pow(10, (log(raw) / ln10).floor()).toDouble();
+      final n = raw / magnitude;
+      return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * magnitude;
+    }
+    final vInterval = niceInterval(voltMax - voltMin);
+    final tInterval = (tRange / 6).clamp(1.0, double.infinity);
+
     // Scale current to voltage axis for dual-axis simulation
     double scaleC(double c) {
       if (currMax == currMin) return (voltMin + voltMax) / 2;
@@ -251,6 +272,7 @@ class _ChartScreenState extends State<ChartScreen> {
               axisNameWidget: const Text('V', style: TextStyle(color: _kTextSecondary, fontSize: 10)),
               sideTitles: SideTitles(
                 showTitles: true, reservedSize: 36,
+                interval: vInterval,
                 getTitlesWidget: (v, _) => Text(v.toStringAsFixed(1),
                     style: const TextStyle(color: _kTextSecondary, fontSize: 9)),
               ),
@@ -259,6 +281,7 @@ class _ChartScreenState extends State<ChartScreen> {
               axisNameWidget: const Text('A', style: TextStyle(color: _kTextSecondary, fontSize: 10)),
               sideTitles: SideTitles(
                 showTitles: true, reservedSize: 36,
+                interval: vInterval,
                 getTitlesWidget: (v, _) {
                   if (currMax == currMin) return const Text('');
                   final realA = currMin + (v - voltMin) / (voltMax - voltMin) * (currMax - currMin);
@@ -270,7 +293,7 @@ class _ChartScreenState extends State<ChartScreen> {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true, reservedSize: 22,
-                interval: (tRange / 5).clamp(1, double.infinity),
+                interval: tInterval,
                 getTitlesWidget: (v, _) {
                   final s = v.round();
                   return Text(s >= 60 ? '${s ~/ 60}m' : '${s}s',

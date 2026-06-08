@@ -391,18 +391,18 @@ class _BatteryScreenState extends State<BatteryScreen> {
   Widget _buildBody() {
     final bothHaveData = (_slotA.data != null) && (_slotB.data != null);
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
       child: Column(children: [
         _buildBatteryCard(_slotA, 'Battery A',
             _isRefreshingA, (v) => setState(() => _isRefreshingA = v)),
-        if (_slotB.isConnected) const SizedBox(height: 12),
+        if (_slotB.isConnected) const SizedBox(height: 6),
         _buildBatteryCard(_slotB, 'Battery B',
             _isRefreshingB, (v) => setState(() => _isRefreshingB = v)),
         if (bothHaveData) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           _buildSummaryStrip(_slotA.data!, _slotB.data!),
         ],
-        const SizedBox(height: 24),
+        const SizedBox(height: 4),
       ]),
     );
   }
@@ -663,12 +663,13 @@ class _BatteryScreenState extends State<BatteryScreen> {
                   - b.cellVoltages.reduce((x, y) => x < y ? x : y);
     }
     final maxSpread     = cellSpreadA > cellSpreadB ? cellSpreadA : cellSpreadB;
-    final spreadColor   = maxSpread > 80 ? _kCritical : maxSpread > 30 ? _kWarning : _kAccent;
+    // cellVoltages are in V → spread is in V; 30 mV / 80 mV thresholds
+    final spreadColor   = maxSpread > 0.080 ? _kCritical : maxSpread > 0.030 ? _kWarning : _kAccent;
 
     return Card(
       color: _kSurfaceElev,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             const Icon(Icons.summarize, color: _kInfo, size: 16),
@@ -683,7 +684,7 @@ class _BatteryScreenState extends State<BatteryScreen> {
                     fontWeight: FontWeight.bold,
                     fontSize: 16)),
           ]),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Row(children: [
             Expanded(child: _summaryCell('Capacity',
                 '${totalRemainingAh.toStringAsFixed(1)} / ${totalNominalAh.toStringAsFixed(1)} Ah',
@@ -698,14 +699,14 @@ class _BatteryScreenState extends State<BatteryScreen> {
                 '${totalPower.toStringAsFixed(1)} W',
                 Icons.bolt, _kWarning)),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Row(children: [
             Expanded(child: _summaryCell('ΔV A↔B',
                 '${(vDelta * 1000).toStringAsFixed(0)} mV',
                 Icons.balance, vDeltaColor)),
             const SizedBox(width: 8),
             Expanded(child: _summaryCell('Cell spread',
-                '${maxSpread.toStringAsFixed(0)} mV',
+                '${(maxSpread * 1000).toStringAsFixed(0)} mV',
                 Icons.grid_view, spreadColor)),
             const SizedBox(width: 8),
             Expanded(child: _summaryCell('Voltage A/B',
