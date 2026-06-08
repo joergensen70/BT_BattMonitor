@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'battery_data.dart';
 import 'bms_service.dart';
 import 'chart_screen.dart';
+import 'recording_service.dart';
 import 'scan_screen.dart';
 
 // ── Design tokens (from dual_battery_app_spec.md §7) ────────────────────────
@@ -282,9 +283,14 @@ class _BatteryScreenState extends State<BatteryScreen> {
         slot.lastDataAt = DateTime.now();
         slot.status = 'Data received';
       });
-      // Feed chart buffer
-      if (slot == _slotA) ChartBuffer.instance.addA(d);
-      else ChartBuffer.instance.addB(d);
+      // Feed chart buffer + recording
+      if (slot == _slotA) {
+        ChartBuffer.instance.addA(d);
+        RecordingService.instance.addA(d);
+      } else {
+        ChartBuffer.instance.addB(d);
+        RecordingService.instance.addB(d);
+      }
     });
 
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {

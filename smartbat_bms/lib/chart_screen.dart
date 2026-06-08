@@ -3,7 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:share_plus/share_plus.dart';
 import 'battery_data.dart';
+import 'recording_service.dart';
 
 // ── Design tokens (must match battery_screen.dart) ────────────────────────────
 const _kBg           = Color(0xFF0A0F14);
@@ -78,12 +80,15 @@ class ChartScreen extends StatefulWidget {
 
 class _ChartScreenState extends State<ChartScreen> {
   final _buffer = ChartBuffer.instance;
+  final _rec    = RecordingService.instance;
 
   // Visibility toggles
   bool _showAVolt = true;
   bool _showBVolt = true;
   bool _showACurr = true;
   bool _showBCurr = true;
+
+  Timer? _elapsedTimer;
 
   @override
   void initState() {
@@ -93,11 +98,15 @@ class _ChartScreenState extends State<ChartScreen> {
       DeviceOrientation.landscapeRight,
     ]);
     _buffer.addListener(_onData);
+    _rec.addListener(_onRecState);
+    _startElapsedTick();
   }
 
   @override
   void dispose() {
     _buffer.removeListener(_onData);
+    _rec.removeListener(_onRecState);
+    _elapsedTimer?.cancel();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -106,6 +115,14 @@ class _ChartScreenState extends State<ChartScreen> {
   }
 
   void _onData() { if (mounted) setState(() {}); }
+  void _onRecState() { if (mounted) setState(() {}); }
+
+  void _startElapsedTick() {
+    _elapsedTimer?.cancel();
+    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _rec.isRecording) setState(() {});
+    });
+  }
 
   // ── Build ──────────────────────────────────────────────────────────────────
   @override
@@ -115,8 +132,9 @@ class _ChartScreenState extends State<ChartScreen> {
       appBar: AppBar(
         backgroundColor: _kSurface,
         foregroundColor: _kTextPrimary,
-        title: const Text('Chart', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: _buildTitle(),
         actions: [
+          _buildRecordingActions(),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Reset timeline',
@@ -127,8 +145,87 @@ class _ChartScreenState extends State<ChartScreen> {
       body: Column(children: [
         _buildLegend(),
         Expanded(child: _buildChart()),
+        if (_rec.completedSessions.isNotEmpty) _buildExportBar(),
       ]),
     );
+  }
+
+  Widget _buildTitle() {
+    if (_rec.isRecording) {
+      final elapsed = _rec.activeSession!.elapsed;
+      final mm = elapsed.inMinutes.toString().padLeft(2, '0');
+      final ss = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
+      return Row(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.fiber_manual_record, color: Color(0xFFFF5D5D), size: 14),
+        const SizedBox(width: 6),
+        Text('REC  $mm:$ss',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold,
+                color: Color(0xFFFF5D5D))),
+      ]);
+    }
+    return const Text('Chart', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold));
+  }
+
+  Widget _buildRecordingActions() {
+    if (_rec.isRecording) {
+      return IconButton(
+        icon: const Icon(Icons.stop_circle_outlined),
+        tooltip: 'Stop recording',
+        color: const Color(0xFFFF5D5D),
+        onPressed: () => _rec.stopRecording(),
+      );
+    }
+    return IconButton(
+      icon: const Icon(Icons.fiber_manual_record),
+      tooltip: 'Start recording',
+      color: const Color(0xFFFF5D5D),
+      onPressed: () {
+        final err = _rec.startRecording();
+        if (err != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(err), backgroundColor: const Color(0xFFFF5D5D)));
+        }
+      },
+    );
+  }
+
+  Widget _buildExportBar() {
+    final sessions = _rec.completedSessions;
+    return Container(
+      color: _kSurface,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Row(children: [
+        const Icon(Icons.save_alt, size: 14, color: _kTextSecondary),
+        const SizedBox(width: 6),
+        Text('${sessions.length} session${sessions.length == 1 ? '' : 's'} recorded',
+            style: const TextStyle(color: _kTextSecondary, fontSize: 11)),
+        const Spacer(),
+        TextButton.icon(
+          icon: const Icon(Icons.share, size: 14),
+          label: const Text('Export last', style: TextStyle(fontSize: 12)),
+          style: TextButton.styleFrom(foregroundColor: _kInfo, padding: EdgeInsets.zero),
+          onPressed: () => _exportLast(),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _exportLast() async {
+    final sessions = _rec.completedSessions;
+    if (sessions.isEmpty) return;
+    try {
+      final path = await _rec.exportCsv(sessions.last);
+      if (!mounted) return;
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(path)],
+        subject: 'SmartBat Recording',
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e'),
+            backgroundColor: const Color(0xFFFF5D5D)));
+    }
   }
 
   Widget _buildLegend() {
