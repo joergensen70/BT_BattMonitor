@@ -2,6 +2,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'battery_data.dart';
 import 'bms_service.dart';
 import 'scan_screen.dart';
@@ -79,9 +80,55 @@ class _BatteryScreenState extends State<BatteryScreen> {
 
   bool get _anyConnected => _slotA.isConnected || _slotB.isConnected;
 
+  static const _prefKeyA = 'saved_mac_a';
+  static const _prefKeyB = 'saved_mac_b';
+
   @override
   void initState() {
     super.initState();
+    _autoReconnect();
+  }
+
+  Future<void> _saveSlotMac(String key, String? mac) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mac == null) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, mac);
+    }
+  }
+
+  Future<void> _autoReconnect() async {
+    final prefs = await SharedPreferences.getInstance();
+    final macA = prefs.getString(_prefKeyA);
+    final macB = prefs.getString(_prefKeyB);
+    if (macA == null && macB == null) return;
+
+    // Give BT stack a moment to be ready
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (_disposed || !mounted) return;
+
+    final devices = FlutterBluePlus.connectedDevices;
+
+    Future<void> trySlot(_BattSlot slot, String? mac, String prefKey) async {
+      if (mac == null || _disposed || !mounted) return;
+      // Check if already connected (e.g. system kept connection)
+      BluetoothDevice? found;
+      try {
+        found = devices.firstWhere((d) => d.remoteId.str == mac);
+      } catch (_) {}
+      // Fall back to scanning briefly for the saved MAC
+      found ??= BluetoothDevice.fromId(mac);
+      await slot.teardown();
+      if (!mounted) return;
+      setState(() { slot.status = 'Auto-connecting…'; slot.device = found; });
+      slot.service = BmsService();
+      _attachStreams(slot);
+      _connect(slot);
+    }
+
+    await trySlot(_slotA, macA, _prefKeyA);
+    await trySlot(_slotB, macB, _prefKeyB);
   }
 
   @override
@@ -141,9 +188,11 @@ class _BatteryScreenState extends State<BatteryScreen> {
     if (device == null || !mounted) return;
 
     final slot = slotChoice == 'A' ? _slotA : _slotB;
+    final prefKey = slotChoice == 'A' ? _prefKeyA : _prefKeyB;
     await slot.teardown();
     if (!mounted) return;
     setState(() { slot.status = 'Connecting…'; slot.device = device; });
+    await _saveSlotMac(prefKey, device.remoteId.str);
     slot.service = BmsService();
     _attachStreams(slot);
     _connect(slot);
@@ -239,6 +288,8 @@ class _BatteryScreenState extends State<BatteryScreen> {
   }
 
   Future<void> _disconnectSlot(_BattSlot slot) async {
+    final prefKey = slot == _slotA ? _prefKeyA : _prefKeyB;
+    await _saveSlotMac(prefKey, null);
     await slot.teardown();
     if (mounted) setState(() {});
   }
