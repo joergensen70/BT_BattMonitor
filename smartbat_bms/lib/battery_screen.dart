@@ -297,8 +297,12 @@ class _BatteryScreenState extends State<BatteryScreen> {
         const Text('No battery connected',
             style: TextStyle(color: _kTextSecondary, fontSize: 16)),
         const SizedBox(height: 8),
-        const Text('Tap  ðŸ”µ  to connect a battery',
-            style: TextStyle(color: _kTextSecondary, fontSize: 13)),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          const Text('Tap ', style: TextStyle(color: _kTextSecondary, fontSize: 13)),
+          const Icon(Icons.bluetooth_searching, color: _kInfo, size: 16),
+          const Text(' to connect a battery',
+              style: TextStyle(color: _kTextSecondary, fontSize: 13)),
+        ]),
       ]),
     );
   }
@@ -397,46 +401,51 @@ class _BatteryScreenState extends State<BatteryScreen> {
     String? timeHint;
     if (d.isCharging && (d.attfMin ?? 0) > 0 && d.attfMin != 65535) {
       final h = d.attfMin! ~/ 60; final m = d.attfMin! % 60;
-      timeHint = h > 0 ? 'âš¡ ${h}h ${m}min to full' : 'âš¡ ${m}min to full';
+      timeHint = h > 0 ? 'CHG  ${h}h ${m}min to full' : 'CHG  ${m}min to full';
     } else if (d.isDischarging && (d.atteMin ?? 0) > 0 && d.atteMin != 65535) {
       final h = d.atteMin! ~/ 60; final m = d.atteMin! % 60;
-      timeHint = h > 0 ? 'â± ${h}h ${m}min to empty' : 'â± ${m}min to empty';
+      timeHint = h > 0 ? 'DSC  ${h}h ${m}min left' : 'DSC  ${m}min left';
     }
 
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          SizedBox(width: 110, height: 110,
+          SizedBox(width: 95, height: 95,
             child: CustomPaint(
               painter: _GaugePainter(d.soc / 100.0, socColor),
               child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Text('${d.soc}%',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,
                         color: socColor)),
-                Text(d.isCharging ? 'âš¡' : d.isDischarging ? 'ðŸ”‹' : 'â€”',
-                    style: const TextStyle(fontSize: 13)),
+                Icon(
+                  d.isCharging ? Icons.bolt
+                      : d.isDischarging ? Icons.battery_4_bar
+                      : Icons.horizontal_rule,
+                  size: 14,
+                  color: d.isCharging ? _kAccent : _kInfo,
+                ),
               ])),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             _inlineStatRow('Voltage', '${d.voltage.toStringAsFixed(3)} V',
                 Icons.flash_on, Colors.yellow),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             _inlineStatRow('Current',
                 '${d.current >= 0 ? '+' : ''}${d.current.toStringAsFixed(3)} A',
                 Icons.compare_arrows, d.isCharging ? _kAccent : _kInfo),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             _inlineStatRow('Power', '${d.power.toStringAsFixed(1)} W',
                 Icons.bolt, _kWarning),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             _inlineStatRow('Cycles', '${d.cycles}',
                 Icons.loop, Colors.purpleAccent),
           ])),
         ]),
 
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
             '${d.remainingAh.toStringAsFixed(1)} Ah  /  ${d.nominalAh.toStringAsFixed(1)} Ah',
             textAlign: TextAlign.center,
@@ -448,8 +457,8 @@ class _BatteryScreenState extends State<BatteryScreen> {
         ],
 
         if (d.temperatures.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Wrap(spacing: 8, runSpacing: 4,
+          const SizedBox(height: 6),
+          Wrap(spacing: 6, runSpacing: 2,
             children: d.temperatures.asMap().entries.map((e) {
               final degC = e.value;
               final degF = ((degC * 1.8 + 32.0) * 10).round() / 10.0;
@@ -459,14 +468,14 @@ class _BatteryScreenState extends State<BatteryScreen> {
                 backgroundColor: _kSurfaceElev,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 label: Text(
-                    'NTC${e.key + 1}: ${degC.toStringAsFixed(1)}Â°C / ${degF.toStringAsFixed(1)}Â°F',
+                    '${e.key == 0 ? 'Temperature' : 'NTC${e.key + 1}'}: ${degC.toStringAsFixed(1)}°C / ${degF.toStringAsFixed(1)}°F',
                     style: TextStyle(color: color, fontSize: 12)),
               );
             }).toList()),
         ],
 
         if (d.cellVoltages.isNotEmpty) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           _buildCellsCompact(d),
         ],
 
@@ -484,7 +493,7 @@ class _BatteryScreenState extends State<BatteryScreen> {
 
   Widget _inlineStatRow(String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
           color: _kSurfaceElev, borderRadius: BorderRadius.circular(6)),
       child: Row(children: [
