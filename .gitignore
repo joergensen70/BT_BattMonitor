@@ -4,6 +4,15 @@
 smartbat_bms/_tmp_bugreport_extract/
 smartbat_bms/_tmp_bugreport.zip
 
+# Captured bugreport archives and dump folders
+smartbat_bms/captures/
+
+# Temporary fix/helper scripts
+smartbat_bms/_fix*.ps1
+
+# Auto-generated Flutter plugin registration (regenerated on build)
+smartbat_bms/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+
 # JADX GUI binary (large standalone app, not source)
 tools/jadx-gui-*/
 
