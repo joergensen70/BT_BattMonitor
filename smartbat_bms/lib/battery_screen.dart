@@ -87,6 +87,11 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
   bool get _anyConnected => _slotA.isConnected || _slotB.isConnected;
 
+  static bool _isActivelyConnecting(String status) {
+    final s = status.toLowerCase();
+    return s.contains('connecting') || s.contains('retrying') || s.contains('scanning');
+  }
+
   static const _prefKeyA    = 'saved_mac_a';
   static const _prefKeyB    = 'saved_mac_b';
   static const _prefNameA   = 'saved_name_a';
@@ -527,9 +532,11 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
           Padding(
             padding: const EdgeInsets.all(20),
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const SizedBox(width: 18, height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: _kAccent)),
-              const SizedBox(width: 14),
+              if (_isActivelyConnecting(slot.status)) ...[
+                const SizedBox(width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: _kAccent)),
+                const SizedBox(width: 14),
+              ],
               Text(slot.status,
                   style: const TextStyle(color: _kTextSecondary, fontSize: 13)),
             ]),
