@@ -159,10 +159,36 @@ class BmsService {
   // Iterates ALL (command × characteristic × writeMode) permutations, logs each
   // result as GATEWAY_RESULT: {...} for PC-side analysis via gateway_monitor.ps1.
   // ── XOR encoding: derived from EncryptUtils.java in LionCheck APK ──────────
-  // Key = sum of encryptByte[nibble] for each nibble of hex(numeric suffix) + 5
-  // For SmartBat-A19681: hex('19681')='4CE1', sum=1+5+9+5=20, key=20+5=25=0x19
-  // All +RAA commands must be XOR'd with this key before sending on fff6.
-  static const int _lionXorKey = 0x19; // SmartBat-A19681 specific
+  // Key = sum of encryptByte[nibble] for each nibble of hex(numeric suffix) + offset
+  // Device name format: [A|B]<decimal_id>  e.g. "SmartBat-A19681"
+  //   type A → offset +5,  type B → offset +8
+  // For SmartBat-A19681: hex(19681)='4CE1', nibbles [4,12,14,1]
+  //   sum = encryptByte[4..] = 1+5+9+5 = 20, key = 20+5 = 25 = 0x19
+  // Fallback: 0x19 (SmartBat-A type default)
+  static const List<int> _encryptByteTable = [2,5,4,3,1,4,1,6,8,3,7,2,5,8,9,3];
+
+  /// Computes the XOR key from the BLE device name using the LionCheck algorithm.
+  /// Returns 0x19 as fallback for unrecognised name formats.
+  static int calcLionXorKey(String deviceName) {
+    // Find the type prefix A or B followed by a decimal number
+    final match = RegExp(r'[Aa](\d+)|[Bb](\d+)').firstMatch(deviceName);
+    if (match == null) return 0x19;
+    final isTypeA = match.group(1) != null;
+    final numStr = match.group(1) ?? match.group(2)!;
+    final numVal = int.tryParse(numStr);
+    if (numVal == null) return 0x19;
+    // Convert number to hex string (no prefix, lowercase)
+    final hexStr = numVal.toRadixString(16);
+    int sum = 0;
+    for (int i = 0; i < hexStr.length; i++) {
+      final nibble = int.parse(hexStr[i], radix: 16);
+      sum += _encryptByteTable[nibble & 15];
+    }
+    return sum + (isTypeA ? 5 : 8);
+  }
+
+  // Instance XOR key — set during connect() from the device name.
+  int _lionXorKey = 0x19;
 
   static const bool _gatewayMode = false; // Disabled: protocol cracked via JADX
   static const int _gwWritesPerPerm = 100; // ~6 s at 60 ms burst
@@ -201,8 +227,13 @@ class BmsService {
 
   Future<void> connect(BluetoothDevice device) async {
     _device = device;
+    // Compute XOR key from device name (EncryptUtils algorithm)
+    final name = device.platformName.isNotEmpty
+        ? device.platformName
+        : device.advName;
+    _lionXorKey = calcLionXorKey(name);
     _setStatus('Connecting');
-    _log('Connecting to ${device.platformName.isNotEmpty ? device.platformName : device.remoteId}');
+    _log('Connecting to $name  [XOR key=0x${_lionXorKey.toRadixString(16).padLeft(2, '0').toUpperCase()}]');
     try {
       await device.connect(autoConnect: false);
     } catch (e) {

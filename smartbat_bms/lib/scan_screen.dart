@@ -2,8 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'battery_screen.dart';
-import 'bms_service.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -94,26 +92,16 @@ class _ScanScreenState extends State<ScanScreen> {
   Future<void> _connect(BluetoothDevice device) async {
     await FlutterBluePlus.stopScan();
     if (!mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BatteryScreen(device: device, service: BmsService()),
-      ),
-    );
+    Navigator.pop(context, device);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(Icons.battery_charging_full, color: Color(0xFF00C853)),
-            SizedBox(width: 8),
-            Text('SmartBat BMS'),
-          ],
-        ),
+        title: const Text('Select Battery'),
         backgroundColor: const Color(0xFF161B22),
+        leading: const BackButton(),
       ),
       body: Column(
         children: [

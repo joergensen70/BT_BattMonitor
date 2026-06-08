@@ -2,6 +2,27 @@
 **/dumpstate*.txt
 **/bugreport*.zip
 smartbat_bms/_tmp_bugreport_extract/
+smartbat_bms/_tmp_bugreport.zip
 
-# JADX GUI binary (large, not needed in repo)
+# JADX GUI binary (large standalone app, not source)
 tools/jadx-gui-*/
+
+# Python virtual environment
+.venv/
+
+# Flutter build outputs
+smartbat_bms/build/
+smartbat_bms/.dart_tool/
+smartbat_bms/.flutter-plugins
+smartbat_bms/.flutter-plugins-dependencies
+smartbat_bms/.packages
+
+# Old legacy app (boilerplate, not the real app)
+smartbat_bms/bt_batt_monitor/
+
+# APK binaries in analysis folder (large, reproducible from source)
+smartbat_bms/analysis/**/*.apk
+
+# .NET build outputs in tools
+tools/ble_scanner_dotnet/bin/
+tools/ble_scanner_dotnet/obj/

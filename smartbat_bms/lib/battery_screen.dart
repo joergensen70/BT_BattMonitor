@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'battery_data.dart';
 import 'bms_service.dart';
+import 'scan_screen.dart';
 
 // ── Design tokens (from dual_battery_app_spec.md §7) ────────────────────────
 const _kBg            = Color(0xFF0A0F14);
@@ -16,23 +17,26 @@ const _kCritical      = Color(0xFFFF5D5D);
 const _kTextPrimary   = Color(0xFFEAF2FF);
 const _kTextSecondary = Color(0xFF9FB0C8);
 
-class BatteryScreen extends StatefulWidget {
-  final BluetoothDevice device;
-  final BmsService service;
+// Empty placeholder shown when no battery is connected
+const _kEmptyData = BatteryData(
+  voltage: 0, current: 0, remainingAh: 0, nominalAh: 0,
+  cycles: 0, soc: 0, temperatures: [], cellVoltages: [],
+  cellCount: 0, chargeFet: false, dischargeFet: false,
+  protectionStatus: 0,
+);
 
-  const BatteryScreen({
-    super.key,
-    required this.device,
-    required this.service,
-  });
+class BatteryScreen extends StatefulWidget {
+  const BatteryScreen({super.key});
 
   @override
   State<BatteryScreen> createState() => _BatteryScreenState();
 }
 
 class _BatteryScreenState extends State<BatteryScreen> {
+  BluetoothDevice? _device;
+  BmsService? _service;
   BatteryData? _data;
-  String _status = 'Connecting…';
+  String _status = '';
   StreamSubscription? _dataSub;
   StreamSubscription? _connSub;
   StreamSubscription<String>? _statusSub;
@@ -40,83 +44,123 @@ class _BatteryScreenState extends State<BatteryScreen> {
   final List<String> _logs = [];
   DateTime? _lastDataAt;
   bool _isRefreshing = false;
+  bool _disposed = false;
+  static const int _maxRetries = 5;
+  static const Duration _retryDelay = Duration(seconds: 2);
 
+  bool get _isConnected => _device != null;
   bool get _hasReceivedData => _data != null || _lastDataAt != null;
 
   @override
   void initState() {
     super.initState();
-    _statusSub = widget.service.statusStream.listen((status) {
+    // No auto-connect on start — wait for user to pick a device.
+  }
+
+  Future<void> _openScanSheet() async {
+    final device = await Navigator.push<BluetoothDevice>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScanScreen()),
+    );
+    if (device != null && mounted) {
+      await _teardown();
+      setState(() {
+        _device = device;
+        _data = null;
+        _lastDataAt = null;
+        _logs.clear();
+        _status = 'Connecting…';
+      });
+      _service = BmsService();
+      _attachServiceStreams();
+      _connect();
+    }
+  }
+
+  void _attachServiceStreams() {
+    _statusSub?.cancel();
+    _logSub?.cancel();
+    _statusSub = _service!.statusStream.listen((status) {
       if (!mounted) return;
       setState(() {
-        // After first data, do not fall back to generic connection states.
         if (_hasReceivedData) {
           final lower = status.toLowerCase();
           if (lower.contains('connecting') ||
               lower.contains('connected') ||
               lower.contains('discovering') ||
-              lower.contains('waiting')) {
-            return;
-          }
+              lower.contains('waiting')) return;
         }
         _status = status;
       });
     });
-    _logSub = widget.service.debugStream.listen((line) {
+    _logSub = _service!.debugStream.listen((line) {
       if (!mounted) return;
       setState(() {
         _logs.insert(0, '${_timeLabel(DateTime.now())}  $line');
-        if (_logs.length > 40) {
-          _logs.removeRange(40, _logs.length);
-        }
-
-        // Show progress as soon as raw BLE frames arrive, even before parsing.
+        if (_logs.length > 40) _logs.removeRange(40, _logs.length);
         if (!_hasReceivedData && line.startsWith('RX ')) {
-          _status = 'Connected - receiving raw data…';
+          _status = 'Connected – receiving raw data…';
         }
       });
     });
-    _connect();
   }
 
   Future<void> _connect() async {
-    _connSub = widget.device.connectionState.listen((state) {
-      if (mounted && state == BluetoothConnectionState.disconnected) {
+    if (_device == null || _service == null) return;
+    _dataSub?.cancel();
+    _connSub?.cancel();
+    _connSub = _device!.connectionState.listen((state) {
+      if (mounted && state == BluetoothConnectionState.disconnected && !_disposed) {
         setState(() => _status = 'Disconnected');
       }
     });
+    _dataSub = _service!.dataStream.listen((data) {
+      if (mounted) setState(() { _data = data; _lastDataAt = DateTime.now(); _status = 'Data received'; });
+    });
 
-    try {
-      // Attach data listener before connect() so we do not miss the first snapshot.
-      _dataSub = widget.service.dataStream.listen((data) {
-        if (mounted) {
-          setState(() {
-            _data = data;
-            _lastDataAt = DateTime.now();
-            _status = 'Data received';
-          });
+    for (int attempt = 1; attempt <= _maxRetries; attempt++) {
+      if (_disposed || !mounted) return;
+      try {
+        if (attempt > 1) {
+          if (mounted) setState(() => _status = 'Retrying ($attempt/$_maxRetries)…');
+          await Future.delayed(_retryDelay);
+          if (_disposed || !mounted) return;
+          await _service!.disconnect();
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (_disposed || !mounted) return;
         }
-      });
-
-      await widget.service.connect(widget.device);
-      if (mounted && !_hasReceivedData) {
-        setState(() => _status = 'Connected – waiting for data…');
+        await _service!.connect(_device!);
+        if (mounted && !_hasReceivedData) setState(() => _status = 'Connected – waiting for data…');
+        return;
+      } catch (e) {
+        if (_disposed || !mounted) return;
+        setState(() => _status = attempt == _maxRetries
+            ? 'Connection failed after $_maxRetries attempts'
+            : 'Attempt $attempt failed, retrying…');
       }
-    } catch (e) {
-      if (mounted) setState(() => _status = 'Connection error: $e');
     }
   }
 
+  Future<void> _teardown() async {
+    _dataSub?.cancel(); _dataSub = null;
+    _connSub?.cancel(); _connSub = null;
+    _statusSub?.cancel(); _statusSub = null;
+    _logSub?.cancel(); _logSub = null;
+    await _service?.disconnect();
+    _service = null;
+    _device = null;
+  }
+
   Future<void> _disconnect() async {
-    await widget.service.disconnect();
-    if (mounted) Navigator.pop(context);
+    await _teardown();
+    if (mounted) setState(() { _data = null; _lastDataAt = null; _status = ''; _logs.clear(); });
   }
 
   Future<void> _refresh() async {
-    if (_isRefreshing) return;
+    if (_isRefreshing || _service == null) return;
     setState(() => _isRefreshing = true);
     try {
-      await widget.service.requestSnapshot();
+      await _service!.requestSnapshot();
     } finally {
       if (mounted) setState(() => _isRefreshing = false);
     }
@@ -131,55 +175,94 @@ class _BatteryScreenState extends State<BatteryScreen> {
 
   @override
   void dispose() {
+    _disposed = true;
     _dataSub?.cancel();
     _connSub?.cancel();
     _statusSub?.cancel();
     _logSub?.cancel();
-    widget.service.dispose();
+    _service?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final name = widget.device.platformName.isNotEmpty
-        ? widget.device.platformName
-        : 'Battery';
+    final name = _device?.platformName.isNotEmpty == true
+        ? _device!.platformName
+        : _isConnected ? 'Battery' : 'SmartBat BMS';
+    final displayData = _data ?? _kEmptyData;
     return Scaffold(
       appBar: AppBar(
-        title: Text(name),
+        automaticallyImplyLeading: false,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset('assets/Odin_Kopf.png', width: 26, height: 26),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                name,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
         backgroundColor: _kSurface,
         foregroundColor: _kTextPrimary,
         actions: [
-          IconButton(
+          if (_isConnected) IconButton(
             icon: _isRefreshing
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                ? const SizedBox(width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.refresh),
             tooltip: 'Request data',
             onPressed: _isRefreshing ? null : _refresh,
           ),
           IconButton(
+            icon: const Icon(Icons.bluetooth_searching),
+            tooltip: 'Select battery',
+            onPressed: _openScanSheet,
+          ),
+          if (_isConnected) IconButton(
             icon: const Icon(Icons.info_outline),
             tooltip: 'Connection info',
             onPressed: () => _showInfoSheet(context),
           ),
-          IconButton(
-            icon: const Icon(Icons.bluetooth_disabled),
+          if (_isConnected) IconButton(
+            icon: const Icon(Icons.bluetooth_disabled, color: _kCritical),
             tooltip: 'Disconnect',
             onPressed: _disconnect,
           ),
         ],
       ),
       backgroundColor: _kBg,
-      body: _data == null ? _buildLoading() : _buildDashboard(_data!),
+      body: (!_isConnected)
+          ? _buildIdle()
+          : (_data == null ? _buildLoading() : _buildDashboard(displayData)),
+    );
+  }
+
+  Widget _buildIdle() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset('assets/Odin_Kopf.png', width: 80, height: 80,
+              color: _kTextSecondary.withOpacity(0.3),
+              colorBlendMode: BlendMode.modulate),
+          const SizedBox(height: 24),
+          const Text('No battery connected',
+              style: TextStyle(color: _kTextSecondary, fontSize: 16)),
+          const SizedBox(height: 8),
+          const Text('Tap    ⦿   to scan for batteries',
+              style: TextStyle(color: _kTextSecondary, fontSize: 13)),
+        ],
+      ),
     );
   }
 
   void _showInfoSheet(BuildContext context) {
-    final deviceId = widget.device.remoteId.toString();
+    final deviceId = _device?.remoteId.toString() ?? '—';
     final lastData = _lastDataAt == null ? 'No data yet' : _timeLabel(_lastDataAt!);
     showModalBottomSheet<void>(
       context: context,
@@ -215,8 +298,8 @@ class _BatteryScreenState extends State<BatteryScreen> {
               ],
             ),
             const SizedBox(height: 14),
-            _infoRow('Device', widget.device.platformName.isNotEmpty
-                ? widget.device.platformName : '—'),
+            _infoRow('Device', _device?.platformName.isNotEmpty == true
+                ? _device!.platformName : '—'),
             _infoRow('MAC', deviceId),
             _infoRow('Status', _status),
             _infoRow('Last update', lastData),
@@ -287,7 +370,7 @@ class _BatteryScreenState extends State<BatteryScreen> {
                   Text(_status, style: const TextStyle(color: _kTextSecondary, fontSize: 15)),
                   const SizedBox(height: 10),
                   Text(
-                    widget.device.remoteId.toString(),
+                    _device?.remoteId.toString() ?? '',
                     style: const TextStyle(color: _kTextSecondary, fontSize: 12),
                   ),
                 ],
@@ -408,6 +491,7 @@ class _BatteryScreenState extends State<BatteryScreen> {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
       childAspectRatio: 1.6,

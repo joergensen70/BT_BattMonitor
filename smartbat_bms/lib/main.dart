@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'scan_screen.dart';
+import 'battery_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +27,7 @@ class SmartBatApp extends StatelessWidget {
         cardColor: const Color(0xFF161B22),
         useMaterial3: true,
       ),
-      home: const ScanScreen(),
+      home: const BatteryScreen(),
     );
   }
 }
