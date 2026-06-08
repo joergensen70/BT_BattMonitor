@@ -310,6 +310,12 @@ class _ChartScreenState extends State<ChartScreen> {
       return voltMin + (c - currMin) / (currMax - currMin) * (voltMax - voltMin);
     }
 
+    // Reverse: scaled Y back to real Amps
+    double unscaleC(double y) {
+      if (currMax == currMin) return (currMin + currMax) / 2;
+      return currMin + (y - voltMin) / (voltMax - voltMin) * (currMax - currMin);
+    }
+
     List<FlSpot> makeSpots(Iterable<double?> Function(ChartPoint) getter) =>
         pts.where((p) => getter(p).first != null)
            .map((p) => FlSpot(p.tSec - minT, getter(p).first!))
@@ -320,34 +326,39 @@ class _ChartScreenState extends State<ChartScreen> {
            .map((p) => FlSpot(p.tSec - minT, scaleC(getter(p).first!)))
            .toList();
 
-    final lines = <LineChartBarData>[
-      if (_showAVolt) LineChartBarData(
-        spots: makeSpots((p) => [p.aVolt]),
-        color: _kColorAVolt, barWidth: 1.5,
-        dotData: const FlDotData(show: false),
-        isCurved: false,
-      ),
-      if (_showBVolt) LineChartBarData(
-        spots: makeSpots((p) => [p.bVolt]),
-        color: _kColorBVolt, barWidth: 1.5,
-        dotData: const FlDotData(show: false),
-        isCurved: false,
-      ),
-      if (_showACurr) LineChartBarData(
-        spots: makeCurrSpots((p) => [p.aCurr]),
-        color: _kColorACurr, barWidth: 1.5,
-        dotData: const FlDotData(show: false),
-        isCurved: false,
-        dashArray: [4, 4],
-      ),
-      if (_showBCurr) LineChartBarData(
-        spots: makeCurrSpots((p) => [p.bCurr]),
-        color: _kColorBCurr, barWidth: 1.5,
-        dotData: const FlDotData(show: false),
-        isCurved: false,
-        dashArray: [4, 4],
-      ),
-    ];
+    // Build lines with metadata so the tooltip can identify series type
+    final lineIsCurrent = <bool>[];
+    final lines = <LineChartBarData>[];
+    void addLine(LineChartBarData bar, {required bool isCurrent}) {
+      lineIsCurrent.add(isCurrent);
+      lines.add(bar);
+    }
+    if (_showAVolt) addLine(LineChartBarData(
+      spots: makeSpots((p) => [p.aVolt]),
+      color: _kColorAVolt, barWidth: 1.5,
+      dotData: const FlDotData(show: false),
+      isCurved: false,
+    ), isCurrent: false);
+    if (_showBVolt) addLine(LineChartBarData(
+      spots: makeSpots((p) => [p.bVolt]),
+      color: _kColorBVolt, barWidth: 1.5,
+      dotData: const FlDotData(show: false),
+      isCurved: false,
+    ), isCurrent: false);
+    if (_showACurr) addLine(LineChartBarData(
+      spots: makeCurrSpots((p) => [p.aCurr]),
+      color: _kColorACurr, barWidth: 1.5,
+      dotData: const FlDotData(show: false),
+      isCurved: false,
+      dashArray: [4, 4],
+    ), isCurrent: true);
+    if (_showBCurr) addLine(LineChartBarData(
+      spots: makeCurrSpots((p) => [p.bCurr]),
+      color: _kColorBCurr, barWidth: 1.5,
+      dotData: const FlDotData(show: false),
+      isCurved: false,
+      dashArray: [4, 4],
+    ), isCurrent: true);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
@@ -406,11 +417,15 @@ class _ChartScreenState extends State<ChartScreen> {
             touchTooltipData: LineTouchTooltipData(
               getTooltipColor: (_) => _kSurfaceElev,
               getTooltipItems: (spots) => spots.map((s) {
-                final colors = [_kColorAVolt, _kColorBVolt, _kColorACurr, _kColorBCurr];
-                final i = s.barIndex.clamp(0, colors.length - 1);
+                final i = s.barIndex.clamp(0, lineIsCurrent.length - 1);
+                final isCurr = lineIsCurrent[i];
+                final val = isCurr ? unscaleC(s.y) : s.y;
+                final text = isCurr
+                    ? '${val.toStringAsFixed(2)} A'
+                    : '${val.toStringAsFixed(3)} V';
                 return LineTooltipItem(
-                  s.y.toStringAsFixed(2),
-                  TextStyle(color: colors[i], fontSize: 11),
+                  text,
+                  TextStyle(color: s.bar.color ?? _kTextPrimary, fontSize: 11),
                 );
               }).toList(),
             ),
