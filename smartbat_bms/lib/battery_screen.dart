@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart' show WidgetsBindingObserver, AppLifecycleState;
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'battery_data.dart';
@@ -72,14 +73,17 @@ class BatteryScreen extends StatefulWidget {
   State<BatteryScreen> createState() => _BatteryScreenState();
 }
 
-class _BatteryScreenState extends State<BatteryScreen> {
+class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserver {
   final _slotA = _BattSlot();
   final _slotB = _BattSlot();
   bool _disposed = false;
   bool _isRefreshingA = false;
   bool _isRefreshingB = false;
-  static const int _maxRetries = 5;
-  static const Duration _retryDelay = Duration(seconds: 2);
+  static const int _maxRetries = 3;
+  static const Duration _retryDelay = Duration(seconds: 3);
+  static const Duration _connectTimeout = Duration(seconds: 15);
+  static const Duration _staleThreshold = Duration(seconds: 30);
+  Timer? _staleTimer;
 
   bool get _anyConnected => _slotA.isConnected || _slotB.isConnected;
 
@@ -91,7 +95,9 @@ class _BatteryScreenState extends State<BatteryScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _autoReconnect();
+    _staleTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkStale());
   }
 
   Future<void> _saveSlot(String macKey, String nameKey, String? mac, String? name) async {
@@ -154,9 +160,47 @@ class _BatteryScreenState extends State<BatteryScreen> {
   @override
   void dispose() {
     _disposed = true;
+    _staleTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _slotA.cancelAll();
     _slotB.cancelAll();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Reconnect any slot that has stale/no data after coming back to foreground
+      _checkStale(force: true);
+    }
+  }
+
+  void _checkStale({bool force = false}) {
+    if (_disposed || !mounted) return;
+    for (final slot in [_slotA, _slotB]) {
+      if (!slot.isConnected) continue;
+      if (slot.lastDataAt == null) continue;
+      final age = DateTime.now().difference(slot.lastDataAt!);
+      if (force || age > _staleThreshold) {
+        _reconnectSlot(slot);
+      }
+    }
+  }
+
+  Future<void> _reconnectSlot(_BattSlot slot) async {
+    if (_disposed || !mounted) return;
+    final device = slot.device;
+    final savedName = slot.savedName;
+    if (device == null) return;
+    setState(() { slot.status = 'Reconnecting…'; slot.data = null; slot.lastDataAt = null; });
+    await slot.service?.disconnect();
+    slot.dataSub?.cancel();
+    slot.connSub?.cancel();
+    if (!mounted || _disposed) return;
+    slot.service ??= BmsService();
+    if (savedName.isNotEmpty) slot.service!.overrideDeviceName(savedName);
+    _attachStreams(slot);
+    _connect(slot);
   }
 
   // ── Scan & connect ──────────────────────────────────────────────────────────
@@ -304,14 +348,19 @@ class _BatteryScreenState extends State<BatteryScreen> {
           await Future.delayed(const Duration(milliseconds: 500));
           if (_disposed || !mounted) return;
         }
-        await slot.service!.connect(slot.device!);
+        await slot.service!.connect(slot.device!)
+            .timeout(_connectTimeout, onTimeout: () {
+          throw TimeoutException('Connection timed out after ${_connectTimeout.inSeconds}s');
+        });
         if (mounted && !slot.hasData) setState(() => slot.status = 'Connected – waiting…');
         return;
       } catch (e) {
         if (_disposed || !mounted) return;
-        setState(() => slot.status = attempt == _maxRetries
-            ? 'Failed after $_maxRetries attempts'
+        final isFinal = attempt == _maxRetries;
+        setState(() => slot.status = isFinal
+            ? 'Disconnected – out of range'
             : 'Attempt $attempt failed, retrying…');
+        if (isFinal) return;
       }
     }
   }
