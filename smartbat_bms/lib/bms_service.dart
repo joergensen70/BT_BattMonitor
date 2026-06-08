@@ -189,6 +189,10 @@ class BmsService {
 
   // Instance XOR key — set during connect() from the device name.
   int _lionXorKey = 0x19;
+  String _overrideName = ''; // set before connect() for auto-reconnect with no platformName
+
+  /// Call before connect() when restoring from saved state (platformName may be empty).
+  void overrideDeviceName(String name) => _overrideName = name;
 
   static const bool _gatewayMode = false; // Disabled: protocol cracked via JADX
   static const int _gwWritesPerPerm = 100; // ~6 s at 60 ms burst
@@ -227,10 +231,11 @@ class BmsService {
 
   Future<void> connect(BluetoothDevice device) async {
     _device = device;
-    // Compute XOR key from device name (EncryptUtils algorithm)
-    final name = device.platformName.isNotEmpty
-        ? device.platformName
-        : device.advName;
+    // Compute XOR key from device name (EncryptUtils algorithm).
+    // Prefer override (auto-reconnect) → platformName → advName.
+    final name = _overrideName.isNotEmpty
+        ? _overrideName
+        : (device.platformName.isNotEmpty ? device.platformName : device.advName);
     _lionXorKey = calcLionXorKey(name);
     _setStatus('Connecting');
     _log('Connecting to $name  [XOR key=0x${_lionXorKey.toRadixString(16).padLeft(2, '0').toUpperCase()}]');
