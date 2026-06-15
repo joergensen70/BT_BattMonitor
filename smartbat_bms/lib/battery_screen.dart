@@ -353,8 +353,11 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   Future<void> _connect(_BattSlot slot) async {
     slot.dataSub?.cancel();
     slot.connSub?.cancel();
-    slot.connSub = slot.device!.connectionState.listen((state) {
+    slot.connSub = slot.device!.connectionState.listen((state) async {
       if (mounted && state == BluetoothConnectionState.disconnected && !_disposed) {
+        _pushSlotLog(slot, 'BLE connection state changed to disconnected');
+        await slot.service?.disconnect();
+        if (!mounted || _disposed) return;
         setState(() => slot.status = 'Disconnected');
       }
     });
@@ -435,6 +438,21 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     }
   }
 
+  void _showAppInfoDialog() {
+    showAboutDialog(
+      context: context,
+      applicationName: 'Odin SmartBat',
+      applicationVersion: 'v1.2',
+      applicationIcon: Image.asset('assets/Odin_Kopf.png', width: 40, height: 40),
+      children: const [
+        SizedBox(height: 8),
+        Text('SmartBat LiFePO4 Battery BMS Monitor'),
+        SizedBox(height: 8),
+        Text('Copyright Joerg Middendorf'),
+      ],
+    );
+  }
+
   String _timeLabel(DateTime value) {
     final hh = value.hour.toString().padLeft(2, '0');
     final mm = value.minute.toString().padLeft(2, '0');
@@ -476,6 +494,11 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             tooltip: 'Live chart',
             onPressed: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const ChartScreen())),
+          ),
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'App info',
+            onPressed: _showAppInfoDialog,
           ),
           IconButton(
             icon: const Icon(Icons.bluetooth_searching),
