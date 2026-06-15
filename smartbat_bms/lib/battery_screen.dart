@@ -1,12 +1,13 @@
 ﻿import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart' show WidgetsBindingObserver, AppLifecycleState;
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'battery_data.dart';
 import 'bms_service.dart';
 import 'chart_screen.dart';
+import 'debug_log_service.dart';
 import 'recording_service.dart';
 import 'scan_screen.dart';
 
@@ -76,6 +77,7 @@ class BatteryScreen extends StatefulWidget {
 class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserver {
   final _slotA = _BattSlot();
   final _slotB = _BattSlot();
+  final _debugLog = DebugLogService.instance;
   bool _disposed = false;
   bool _isRefreshingA = false;
   bool _isRefreshingB = false;
@@ -86,6 +88,17 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   Timer? _staleTimer;
 
   bool get _anyConnected => _slotA.isConnected || _slotB.isConnected;
+
+  String _slotTag(_BattSlot slot) => slot == _slotA ? 'A' : 'B';
+
+  void _pushSlotLog(_BattSlot slot, String line) {
+    final ts = _timeLabel(DateTime.now());
+    if (mounted) {
+      slot.logs.insert(0, '$ts  $line');
+      if (slot.logs.length > 40) slot.logs.removeRange(40, slot.logs.length);
+    }
+    _debugLog.add('slot=${_slotTag(slot)} $line');
+  }
 
   static bool _isActivelyConnecting(String status) {
     final s = status.toLowerCase();
@@ -197,6 +210,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     final device = slot.device;
     final savedName = slot.savedName;
     if (device == null) return;
+    _pushSlotLog(slot, 'UI reconnect requested');
     setState(() { slot.status = 'Reconnecting…'; slot.data = null; slot.lastDataAt = null; });
     await slot.service?.disconnect();
     slot.dataSub?.cancel();
@@ -205,7 +219,17 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     slot.service ??= BmsService();
     if (savedName.isNotEmpty) slot.service!.overrideDeviceName(savedName);
     _attachStreams(slot);
-    _connect(slot);
+    await _connect(slot);
+  }
+
+  Future<void> _refreshAllSlots() async {
+    _debugLog.add('UI pull-to-refresh requested');
+    if (_slotA.isConnected) {
+      await _reconnectSlot(_slotA);
+    }
+    if (_slotB.isConnected) {
+      await _reconnectSlot(_slotB);
+    }
   }
 
   // ── Scan & connect ──────────────────────────────────────────────────────────
@@ -227,7 +251,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                 width: 40, height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                    color: _kTextSecondary.withOpacity(0.4),
+                  color: _kTextSecondary.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2)),
               ),
               const Text('Select slot to connect',
@@ -235,6 +259,15 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                       color: _kTextPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 16)),
+              const SizedBox(height: 10),
+              const Text(
+                'Hinweis bei neuer Verbindung: Standard-Bluetooth-Code ist 000000.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: _kTextSecondary,
+                  fontSize: 12,
+                ),
+              ),
               const SizedBox(height: 16),
               Row(children: [
                 Expanded(child: _slotButton('Battery A', 'A',
@@ -304,13 +337,12 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
         }
         slot.status = s;
       });
+      _debugLog.add('slot=${_slotTag(slot)} status=$s');
     });
     slot.logSub = slot.service!.debugStream.listen((line) {
       if (!mounted) return;
       setState(() {
-        final ts = _timeLabel(DateTime.now());
-        slot.logs.insert(0, '$ts  $line');
-        if (slot.logs.length > 40) slot.logs.removeRange(40, slot.logs.length);
+        _pushSlotLog(slot, line);
         if (!slot.hasData && line.startsWith('RX ')) {
           slot.status = 'Connected – receiving…';
         }
@@ -371,6 +403,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   }
 
   Future<void> _disconnectSlot(_BattSlot slot) async {
+    _pushSlotLog(slot, 'UI disconnect requested');
     final macKey  = slot == _slotA ? _prefKeyA : _prefKeyB;
     final nameKey = slot == _slotA ? _prefNameA : _prefNameB;
     await _saveSlot(macKey, nameKey, null, null);
@@ -379,7 +412,27 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   }
 
   Future<void> _refreshSlot(_BattSlot slot) async {
-    await slot.service?.requestSnapshot();
+    _pushSlotLog(slot, 'UI slot refresh requested');
+    await _reconnectSlot(slot);
+  }
+
+  Future<void> _shareDebugLog() async {
+    try {
+      final path = await _debugLog.exportSnapshot();
+      if (!mounted) return;
+      await Share.shareXFiles(
+        [XFile(path)],
+        subject: 'SmartBat Debug Log',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Debug log export failed: $e'),
+          backgroundColor: _kCritical,
+        ),
+      );
+    }
   }
 
   String _timeLabel(DateTime value) {
@@ -408,7 +461,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                   Text('Odin SmartBat',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text('v1.1',
+                  Text('v1.2',
                       style: TextStyle(fontSize: 9, color: Colors.white54)),
                 ],
               ),
@@ -440,7 +493,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Image.asset('assets/Odin_Kopf.png', width: 80, height: 80,
-            color: _kTextSecondary.withOpacity(0.3),
+            color: _kTextSecondary.withValues(alpha: 0.3),
             colorBlendMode: BlendMode.modulate),
         const SizedBox(height: 24),
         const Text('No battery connected',
@@ -458,20 +511,26 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
   Widget _buildBody() {
     final bothHaveData = (_slotA.data != null) && (_slotB.data != null);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(7, 7, 7, 8),
-      child: Column(children: [
-        _buildBatteryCard(_slotA, 'Battery A',
-            _isRefreshingA, (v) => setState(() => _isRefreshingA = v)),
-        if (_slotB.isConnected) const SizedBox(height: 5),
-        _buildBatteryCard(_slotB, 'Battery B',
-            _isRefreshingB, (v) => setState(() => _isRefreshingB = v)),
-        if (bothHaveData) ...[
-          const SizedBox(height: 5),
-          _buildSummaryStrip(_slotA.data!, _slotB.data!),
-        ],
-        const SizedBox(height: 0),
-      ]),
+    return RefreshIndicator(
+      color: _kAccent,
+      backgroundColor: _kSurface,
+      onRefresh: _refreshAllSlots,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(7, 7, 7, 8),
+        child: Column(children: [
+          _buildBatteryCard(_slotA, 'Battery A',
+              _isRefreshingA, (v) => setState(() => _isRefreshingA = v)),
+          if (_slotB.isConnected) const SizedBox(height: 5),
+          _buildBatteryCard(_slotB, 'Battery B',
+              _isRefreshingB, (v) => setState(() => _isRefreshingB = v)),
+          if (bothHaveData) ...[
+            const SizedBox(height: 5),
+            _buildSummaryStrip(_slotA.data!, _slotB.data!),
+          ],
+          const SizedBox(height: 0),
+        ]),
+      ),
     );
   }
 
@@ -549,6 +608,12 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
   Widget _buildSlotData(BatteryData d) {
     final Color socColor = d.soc > 60 ? _kAccent : d.soc > 25 ? _kWarning : _kCritical;
+    final IconData statusIcon = d.isCharging
+        ? Icons.bolt
+        : d.isDischarging
+            ? Icons.battery_4_bar
+            : Icons.horizontal_rule;
+    final Color statusIconColor = d.isCharging ? _kAccent : _kInfo;
 
     String? timeHint;
     if (d.isCharging && (d.attfMin ?? 0) > 0 && d.attfMin != 65535) {
@@ -570,12 +635,16 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                 Text('${d.soc}%',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal,
                         color: socColor)),
-                Icon(
-                  d.isCharging ? Icons.bolt
-                      : d.isDischarging ? Icons.battery_4_bar
-                      : Icons.horizontal_rule,
-                  size: 14,
-                  color: d.isCharging ? _kAccent : _kInfo,
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: Center(
+                    child: Icon(
+                      statusIcon,
+                      size: 14,
+                      color: statusIconColor,
+                    ),
+                  ),
                 ),
               ])),
             ),
@@ -828,7 +897,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
               width: 40, height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                  color: _kTextSecondary.withOpacity(0.4),
+              color: _kTextSecondary.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(2)),
             )),
             _infoRow('Device', slot.device?.platformName.isNotEmpty == true
@@ -837,9 +906,21 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             _infoRow('Status', slot.status),
             _infoRow('Last update', lastData),
             const SizedBox(height: 16),
-            const Text('BLE / Protocol Log',
-                style: TextStyle(color: _kTextPrimary,
-                    fontWeight: FontWeight.bold, fontSize: 14)),
+            Row(children: [
+              const Text('BLE / Protocol Log',
+                  style: TextStyle(color: _kTextPrimary,
+                      fontWeight: FontWeight.bold, fontSize: 14)),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: _shareDebugLog,
+                icon: const Icon(Icons.share, size: 14),
+                label: const Text('Share', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  foregroundColor: _kInfo,
+                  padding: EdgeInsets.zero,
+                ),
+              ),
+            ]),
             const SizedBox(height: 8),
             if (slot.logs.isEmpty)
               const Text('No log entries yet.',
