@@ -439,17 +439,58 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   }
 
   void _showAppInfoDialog() {
-    showAboutDialog(
+    showDialog<void>(
       context: context,
-      applicationName: 'Odin SmartBat',
-      applicationVersion: 'v1.2',
-      applicationIcon: Image.asset('assets/Odin_Kopf.png', width: 40, height: 40),
-      children: const [
-        SizedBox(height: 8),
-        Text('SmartBat LiFePO4 Battery BMS Monitor'),
-        SizedBox(height: 8),
-        Text('Copyright Joerg Middendorf'),
-      ],
+      builder: (context) => AlertDialog(
+        backgroundColor: _kSurface,
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        title: Row(
+          children: [
+            Image.asset('assets/Odin_Kopf.png', width: 40, height: 40),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Odin SmartBat',
+                    style: TextStyle(color: _kTextPrimary, fontSize: 18),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'v1.2.1',
+                    style: TextStyle(color: _kTextSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'SmartBat LiFePO4 Battery BMS Monitor',
+              style: TextStyle(color: _kTextPrimary),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Copyright Joerg Middendorf',
+              style: TextStyle(color: _kTextSecondary, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -479,7 +520,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                   Text('Odin SmartBat',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text('v1.2',
+                  Text('v1.2.1',
                       style: TextStyle(fontSize: 9, color: Colors.white54)),
                 ],
               ),

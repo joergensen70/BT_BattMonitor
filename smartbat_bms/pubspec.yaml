@@ -1,6 +1,6 @@
 name: smartbat_bms
 description: SmartBat LiFePO4 Battery BMS Monitor
-version: 1.2.0+3
+version: 1.2.1+4
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
