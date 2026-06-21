@@ -6,14 +6,15 @@ This is the standard repeatable workflow for test deployments.
 
 - Phone connected via USB and visible in ADB.
 - Target package name: `com.smartbat.bms`.
-- Project root for build: `bt_batt_monitor`.
+- Project root for build: `smartbat_bms`.
+- Current app version: `1.3.1`.
 
 ## Standard flow
 
 1. Verify device connection:
    - `adb devices`
 2. Go to Flutter app folder:
-   - `cd bt_batt_monitor`
+   - `cd smartbat_bms`
 3. Rebuild from clean state:
    - `flutter clean`
    - `flutter pub get`
@@ -24,6 +25,21 @@ This is the standard repeatable workflow for test deployments.
    - `adb install -r build\app\outputs\flutter-apk\app-debug.apk`
 6. Launch app:
    - `adb shell monkey -p com.smartbat.bms -c android.intent.category.LAUNCHER 1`
+
+## Demo Mode
+
+- The app now includes an in-app demo mode for UI testing without live BLE hardware.
+- Demo mode simulates two batteries and keeps live slot assignment logically separate from demo slot assignment.
+- Leaving demo mode triggers auto-reconnect to previously saved live batteries.
+- Cell data is still generated in demo mode, but the compact cell grid is intentionally hidden in the UI for now.
+
+## Release Flow
+
+1. Build the release APK from `smartbat_bms`:
+   - `powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version "1.3.1"`
+2. Expected release artifact:
+   - `rel\odin-smartbat-v1.3.1.apk`
+3. Create Git tag and GitHub release after validation.
 
 ## Notes
 

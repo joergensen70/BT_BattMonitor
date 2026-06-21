@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'battery_data.dart';
 import 'bms_service.dart';
+import 'demo_data_generator.dart';
 import 'chart_screen.dart';
 import 'debug_log_service.dart';
 import 'recording_service.dart';
@@ -39,6 +40,7 @@ class _BattSlot {
 
   bool get isConnected => device != null;
   bool get hasData => data != null || lastDataAt != null;
+  bool get isDemoSlot => device?.remoteId.str.startsWith('DEMO-') == true;
 
   /// Synchronous cancel — safe to call from dispose().
   void cancelAll() {
@@ -81,15 +83,30 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   bool _disposed = false;
   bool _isRefreshingA = false;
   bool _isRefreshingB = false;
+  bool _demoMode = false;
+  bool _isSwitchingMode = false;
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 3);
   static const Duration _connectTimeout = Duration(seconds: 15);
   static const Duration _staleThreshold = Duration(seconds: 30);
+  static const String _kAppVersion = 'v1.3.1';
+  static const bool _showCellDetails = false;
+  static const double _kFrameGap = 6.0;
   Timer? _staleTimer;
+  StreamSubscription<BatteryData>? _demoASub;
+  StreamSubscription<BatteryData>? _demoBSub;
 
-  bool get _anyConnected => _slotA.isConnected || _slotB.isConnected;
+  bool get _anyConnected => _slotA.isConnected || _slotB.isConnected || _demoMode;
 
   String _slotTag(_BattSlot slot) => slot == _slotA ? 'A' : 'B';
+
+  String _slotDisplayName(_BattSlot slot, {String fallback = ''}) {
+    if (slot.isDemoSlot) return 'Demo Battery ${_slotTag(slot)}';
+    final platformName = slot.device?.platformName ?? '';
+    if (platformName.isNotEmpty) return platformName;
+    if (slot.savedName.isNotEmpty) return slot.savedName;
+    return fallback;
+  }
 
   void _pushSlotLog(_BattSlot slot, String line) {
     final ts = _timeLabel(DateTime.now());
@@ -130,6 +147,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   }
 
   Future<void> _autoReconnect() async {
+    if (_demoMode) return;
     final prefs = await SharedPreferences.getInstance();
     final macA  = prefs.getString(_prefKeyA);
     final macB  = prefs.getString(_prefKeyB);
@@ -137,7 +155,6 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     final nameB = prefs.getString(_prefNameB);
     if (macA == null && macB == null) return;
 
-    // Give BT stack a moment to be ready
     await Future.delayed(const Duration(milliseconds: 800));
     if (_disposed || !mounted) return;
 
@@ -145,11 +162,9 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
     Future<void> trySlot(_BattSlot slot, String? mac, String? savedName) async {
       if (mac == null || _disposed || !mounted) return;
-      // Re-use already-connected device if still live
       BluetoothDevice? found;
       try { found = connected.firstWhere((d) => d.remoteId.str == mac); } catch (_) {}
       found ??= BluetoothDevice.fromId(mac);
-      // Inject saved name so XOR key and UI label are correct
       final nameForKey = (found.platformName.isNotEmpty ? found.platformName : savedName) ?? '';
       await slot.teardown();
       if (!mounted) return;
@@ -162,8 +177,6 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
     await trySlot(_slotA, macA, nameA);
 
-    // Wait for slot A to get data (or timeout) before starting slot B —
-    // BLE cannot reliably handle two simultaneous connection setups.
     if (macB != null && macA != null) {
       for (int i = 0; i < 40; i++) {
         await Future.delayed(const Duration(milliseconds: 200));
@@ -180,21 +193,22 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     _disposed = true;
     _staleTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    _stopDemoStreams();
     _slotA.cancelAll();
     _slotB.cancelAll();
+    if (_demoMode) DemoDataGenerator.instance.stop();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Reconnect any slot that has stale/no data after coming back to foreground
       _checkStale(force: true);
     }
   }
 
   void _checkStale({bool force = false}) {
-    if (_disposed || !mounted) return;
+    if (_disposed || !mounted || _demoMode || _isSwitchingMode) return;
     for (final slot in [_slotA, _slotB]) {
       if (!slot.isConnected) continue;
       if (slot.lastDataAt == null) continue;
@@ -206,7 +220,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   }
 
   Future<void> _reconnectSlot(_BattSlot slot) async {
-    if (_disposed || !mounted) return;
+    if (_disposed || !mounted || _demoMode || _isSwitchingMode) return;
     final device = slot.device;
     final savedName = slot.savedName;
     if (device == null) return;
@@ -223,16 +237,87 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   }
 
   Future<void> _refreshAllSlots() async {
+    if (_demoMode || _isSwitchingMode) return;
     _debugLog.add('UI pull-to-refresh requested');
-    if (_slotA.isConnected) {
-      await _reconnectSlot(_slotA);
+    if (_slotA.isConnected) await _reconnectSlot(_slotA);
+    if (_slotB.isConnected) await _reconnectSlot(_slotB);
+  }
+
+  Future<void> _toggleDemoMode() async {
+    if (_isSwitchingMode) return;
+    if (mounted) {
+      setState(() => _isSwitchingMode = true);
     }
-    if (_slotB.isConnected) {
-      await _reconnectSlot(_slotB);
+
+    if (_demoMode) {
+      _stopDemoStreams();
+      DemoDataGenerator.instance.stop();
+      await _slotA.teardown();
+      await _slotB.teardown();
+      if (!mounted) return;
+      setState(() {
+        _demoMode = false;
+        _isSwitchingMode = false;
+      });
+      await _autoReconnect();
+      return;
+    }
+
+    await _slotA.teardown();
+    await _slotB.teardown();
+    if (!mounted) return;
+
+    _stopDemoStreams();
+    setState(() {
+      _demoMode = true;
+      _slotA.device = BluetoothDevice.fromId('DEMO-A');
+      _slotA.status = 'Demo mode';
+      _slotA.data = null;
+      _slotA.lastDataAt = null;
+      _slotB.device = BluetoothDevice.fromId('DEMO-B');
+      _slotB.status = 'Demo mode';
+      _slotB.data = null;
+      _slotB.lastDataAt = null;
+    });
+
+    _listenDemoStreams();
+    DemoDataGenerator.instance.start();
+
+    if (mounted) {
+      setState(() => _isSwitchingMode = false);
     }
   }
 
-  // ── Scan & connect ──────────────────────────────────────────────────────────
+  void _stopDemoStreams() {
+    _demoASub?.cancel();
+    _demoASub = null;
+    _demoBSub?.cancel();
+    _demoBSub = null;
+  }
+
+  void _listenDemoStreams() {
+    _stopDemoStreams();
+    _demoASub = DemoDataGenerator.instance.aStream.listen((d) {
+      if (!mounted || !_demoMode || _isSwitchingMode) return;
+      setState(() {
+        _slotA.data = d;
+        _slotA.lastDataAt = DateTime.now();
+        _slotA.status = 'Demo data';
+        ChartBuffer.instance.addA(d);
+        RecordingService.instance.addA(d);
+      });
+    });
+    _demoBSub = DemoDataGenerator.instance.bStream.listen((d) {
+      if (!mounted || !_demoMode || _isSwitchingMode) return;
+      setState(() {
+        _slotB.data = d;
+        _slotB.lastDataAt = DateTime.now();
+        _slotB.status = 'Demo data';
+        ChartBuffer.instance.addB(d);
+        RecordingService.instance.addB(d);
+      });
+    });
+  }
 
   Future<void> _openScanPicker() async {
     final slotChoice = await showModalBottomSheet<String>(
@@ -271,10 +356,10 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
               const SizedBox(height: 16),
               Row(children: [
                 Expanded(child: _slotButton('Battery A', 'A',
-                    _slotA.isConnected ? _slotA.device!.platformName : null)),
+                    _slotA.isConnected ? _slotDisplayName(_slotA) : null)),
                 const SizedBox(width: 12),
                 Expanded(child: _slotButton('Battery B', 'B',
-                    _slotB.isConnected ? _slotB.device!.platformName : null)),
+                    _slotB.isConnected ? _slotDisplayName(_slotB) : null)),
               ]),
             ],
           ),
@@ -312,7 +397,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Text(label,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        if (currentName != null) ...[
+        if (currentName != null && currentName.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(currentName,
               style: const TextStyle(fontSize: 11, color: _kAccent),
@@ -354,6 +439,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     slot.dataSub?.cancel();
     slot.connSub?.cancel();
     slot.connSub = slot.device!.connectionState.listen((state) async {
+      if (_demoMode || _isSwitchingMode) return;
       if (mounted && state == BluetoothConnectionState.disconnected && !_disposed) {
         _pushSlotLog(slot, 'BLE connection state changed to disconnected');
         await slot.service?.disconnect();
@@ -362,12 +448,12 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       }
     });
     slot.dataSub = slot.service!.dataStream.listen((d) {
+      if (_demoMode || _isSwitchingMode) return;
       if (mounted) setState(() {
         slot.data = d;
         slot.lastDataAt = DateTime.now();
         slot.status = 'Data received';
       });
-      // Feed chart buffer + recording
       if (slot == _slotA) {
         ChartBuffer.instance.addA(d);
         RecordingService.instance.addA(d);
@@ -461,7 +547,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'v1.2.1',
+                    _kAppVersion,
                     style: TextStyle(color: _kTextSecondary, fontSize: 12),
                   ),
                 ],
@@ -500,7 +586,6 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     final ss = value.second.toString().padLeft(2, '0');
     return '$hh:$mm:$ss';
   }
-  // â”€â”€ Build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   Widget build(BuildContext context) {
@@ -520,9 +605,31 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                   Text('Odin SmartBat',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text('v1.2.1',
+                  Text(_kAppVersion,
                       style: TextStyle(fontSize: 9, color: Colors.white54)),
                 ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _toggleDemoMode,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: _demoMode
+                      ? LinearGradient(colors: [_kWarning, Colors.orangeAccent])
+                      : LinearGradient(colors: [_kInfo, Colors.blue.shade700]),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white54, width: 1),
+                ),
+                child: Text(
+                  _demoMode ? 'DEMO' : 'live',
+                  style: TextStyle(
+                    color: _demoMode ? Colors.black : Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
@@ -543,7 +650,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
           ),
           IconButton(
             icon: const Icon(Icons.bluetooth_searching),
-            tooltip: 'Connect battery',
+            tooltip: 'Scan for batteries',
             onPressed: _openScanPicker,
           ),
         ],
@@ -560,14 +667,41 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             color: _kTextSecondary.withValues(alpha: 0.3),
             colorBlendMode: BlendMode.modulate),
         const SizedBox(height: 24),
-        const Text('No battery connected',
-            style: TextStyle(color: _kTextSecondary, fontSize: 16)),
+        Text(
+          _demoMode ? 'Demo mode active' : 'No battery connected',
+          style: const TextStyle(color: _kTextSecondary, fontSize: 16),
+        ),
         const SizedBox(height: 8),
         Row(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Tap ', style: TextStyle(color: _kTextSecondary, fontSize: 13)),
-          const Icon(Icons.bluetooth_searching, color: _kInfo, size: 16),
-          const Text(' to connect a battery',
-              style: TextStyle(color: _kTextSecondary, fontSize: 13)),
+          GestureDetector(
+            onTap: _toggleDemoMode,
+            child: Row(
+              children: [
+                Icon(
+                  _demoMode ? Icons.science : Icons.science,
+                  color: _kWarning,
+                  size: 16,
+                ),
+                Text(
+                  _demoMode ? ' DEMO' : ' DEMO',
+                  style: const TextStyle(color: _kTextSecondary, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          GestureDetector(
+            onTap: _openScanPicker,
+            child: Row(
+              children: [
+                Icon(Icons.bluetooth_searching, color: _kInfo, size: 16),
+                Text(
+                  ' SCAN',
+                  style: const TextStyle(color: _kTextSecondary, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
         ]),
       ]),
     );
@@ -579,36 +713,36 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       color: _kAccent,
       backgroundColor: _kSurface,
       onRefresh: _refreshAllSlots,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(7, 7, 7, 8),
-        child: Column(children: [
-          _buildBatteryCard(_slotA, 'Battery A',
-              _isRefreshingA, (v) => setState(() => _isRefreshingA = v)),
-          if (_slotB.isConnected) const SizedBox(height: 5),
-          _buildBatteryCard(_slotB, 'Battery B',
-              _isRefreshingB, (v) => setState(() => _isRefreshingB = v)),
-          if (bothHaveData) ...[
-            const SizedBox(height: 5),
-            _buildSummaryStrip(_slotA.data!, _slotB.data!),
-          ],
-          const SizedBox(height: 0),
-        ]),
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(_kFrameGap),
+          child: Column(children: [
+            _buildBatteryCard(_slotA, 'Battery A',
+                _isRefreshingA, (v) => setState(() => _isRefreshingA = v)),
+            if (_slotB.isConnected) const SizedBox(height: _kFrameGap),
+            _buildBatteryCard(_slotB, 'Battery B',
+                _isRefreshingB, (v) => setState(() => _isRefreshingB = v)),
+            if (bothHaveData) ...[
+              const SizedBox(height: _kFrameGap),
+              _buildSummaryStrip(_slotA.data!, _slotB.data!),
+            ],
+          ]),
+        ),
       ),
     );
   }
-
-  // â”€â”€ Battery card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildBatteryCard(_BattSlot slot, String label, bool isRefreshing,
       void Function(bool) setRefreshing) {
     if (!slot.isConnected) return const SizedBox.shrink();
 
-    final name = (slot.device!.platformName.isNotEmpty
-        ? slot.device!.platformName
-        : slot.savedName.isNotEmpty ? slot.savedName : label);
+    final name = _slotDisplayName(slot, fallback: label);
 
     return Card(
+      margin: EdgeInsets.zero,
       color: _kSurface,
       clipBehavior: Clip.hardEdge,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -759,7 +893,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             }).toList()),
         ],
 
-        if (d.cellVoltages.isNotEmpty) ...[
+        if (_showCellDetails && d.cellVoltages.isNotEmpty) ...[
           const SizedBox(height: 6),
           _buildCellsCompact(d),
         ],
@@ -803,7 +937,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
         const SizedBox(width: 4),
         const Text('Cells', style: TextStyle(color: _kTextSecondary, fontSize: 12)),
         const Spacer(),
-        Text('Î” $deltaMs mV',
+        Text('Δ $deltaMs mV',
             style: TextStyle(fontSize: 11,
                 color: deltaMs > 50 ? _kWarning : _kTextSecondary)),
       ]),
@@ -841,8 +975,6 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     ]);
   }
 
-  // â”€â”€ Summary strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   Widget _buildSummaryStrip(BatteryData a, BatteryData b) {
     final totalRemainingAh = a.remainingAh + b.remainingAh;
     final totalNominalAh   = a.nominalAh   + b.nominalAh;
@@ -855,21 +987,22 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     final vDelta        = (a.voltage - b.voltage).abs();
     final vDeltaColor   = vDelta > 0.2 ? _kCritical : vDelta > 0.05 ? _kWarning : _kAccent;
 
-    // Cell spread imbalance per battery
-    double cellSpreadA = 0, cellSpreadB = 0;
-    if (a.cellVoltages.length > 1) {
-      cellSpreadA = a.cellVoltages.reduce((x, y) => x > y ? x : y)
-                  - a.cellVoltages.reduce((x, y) => x < y ? x : y);
+    double cellSpread(List<double> voltages) {
+      if (voltages.length < 2) return 0.0;
+      return voltages.reduce(max) - voltages.reduce(min);
     }
-    if (b.cellVoltages.length > 1) {
-      cellSpreadB = b.cellVoltages.reduce((x, y) => x > y ? x : y)
-                  - b.cellVoltages.reduce((x, y) => x < y ? x : y);
-    }
-    final maxSpread     = cellSpreadA > cellSpreadB ? cellSpreadA : cellSpreadB;
-    // cellVoltages are in V → spread is in V; 30 mV / 80 mV thresholds
-    final spreadColor   = maxSpread > 0.080 ? _kCritical : maxSpread > 0.030 ? _kWarning : _kAccent;
+
+    final maxSpread = max(cellSpread(a.cellVoltages), cellSpread(b.cellVoltages));
+    final spreadColor = maxSpread > 0.080
+        ? _kCritical
+        : maxSpread > 0.030
+            ? _kWarning
+            : maxSpread > 0
+                ? _kAccent
+                : _kTextSecondary;
 
     return Card(
+      margin: EdgeInsets.zero,
       color: _kSurfaceElev,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -940,10 +1073,8 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     );
   }
 
-  // â”€â”€ Info sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   void _showSlotInfoSheet(_BattSlot slot) {
-    final deviceId = slot.device?.remoteId.toString() ?? 'â€”';
+    final deviceId = slot.device?.remoteId.toString() ?? '—';
     final lastData = slot.lastDataAt == null ? 'No data yet' : _timeLabel(slot.lastDataAt!);
     showModalBottomSheet<void>(
       context: context,
@@ -965,7 +1096,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                   borderRadius: BorderRadius.circular(2)),
             )),
             _infoRow('Device', slot.device?.platformName.isNotEmpty == true
-                ? slot.device!.platformName : 'â€”'),
+                ? slot.device!.platformName : '—'),
             _infoRow('MAC', deviceId),
             _infoRow('Status', slot.status),
             _infoRow('Last update', lastData),

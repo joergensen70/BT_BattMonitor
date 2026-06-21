@@ -28,6 +28,7 @@ Flutter app currently includes:
 - Connect flow to selected device
 - BMS service for JBD-style protocol (FFF0/FFF1/FFF2)
 - Dashboard with SoC, voltage/current/power, temperatures, cells, alerts
+- Demo mode with two simulated batteries for UI and non-BLE workflow testing
 - Additional status/debug logging in-app for connection and protocol visibility
 
 ## 3) What We Learned (Validated)
@@ -64,6 +65,11 @@ Flutter app currently includes:
 - Important workspace finding: `smartbat_bms/bt_batt_monitor` is a separate default Flutter demo project (counter app), while the real SmartBat app entry point is `smartbat_bms/lib/main.dart`.
 - Android build scripts in `smartbat_bms/android` were migrated to modern Flutter plugin DSL and updated for current Flutter/Gradle compatibility.
 - Real SmartBat app now builds and installs successfully on device in release mode (`flutter run --release` from `smartbat_bms`).
+- Debug APK `1.3.1+5` was built, installed, and launched successfully on `R3CY30DH49E`.
+- Demo mode was added and validated as a two-battery simulated data path.
+- Demo/live mode separation was hardened so demo slot labels do not leak into live slot assignment.
+- Leaving demo mode now auto-reconnects the previously saved live batteries.
+- Combined summary cell-spread calculation was restored while the compact cell grid remains intentionally hidden for now.
 - Field issue observed: device could connect but showed `BMS service not found`.
 - Fix applied in `smartbat_bms/lib/bms_service.dart`: UUID matching now supports variant formatting and fallback service selection via FFF1/FFF2 characteristic discovery.
 - Updated app redeployed successfully to `SM_S936B` in release mode for verification.
@@ -109,14 +115,15 @@ Status:
 - Windows BLE validation path is currently unreliable on this machine.
 - Android test path is the recommended and intended route now.
 - Android device (`SM_S936B` / `R3CY30DH49E`) is now connected, authorized, and usable as Flutter run target.
-- App deploy/start on Android succeeds (`flutter run` builds and installs `app-debug.apk`, VM service available).
+- App deploy/start on Android succeeds via build + adb install/launch workflow.
+- Current release target version is `1.3.1`.
+- Demo mode is available for UI validation when live batteries are not connected.
 
 Next execution focus:
-- Configure Android SDK path and platform-tools (`adb`) on this machine
-- Re-run `flutter doctor -v` until Android toolchain is green
-- Connect Android device and verify detection in `flutter devices`
-- Build and run on Android device
-- Confirm end-to-end data read from SmartBat-A19681
+- Continue BLE protocol validation against real batteries
+- Verify whether cell data can be extracted from live BMS traffic
+- Keep demo mode aligned with dashboard UX during live feature changes
+- Create and publish tagged releases after validated device deploys
 
 ## 8) Update Rules for This Brain
 
