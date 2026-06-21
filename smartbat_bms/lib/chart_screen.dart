@@ -248,12 +248,12 @@ class _ChartScreenState extends State<ChartScreen> {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Container(
           width: 16, height: 3,
-          color: visible ? color : color.withOpacity(0.25),
+          color: visible ? color : color.withValues(alpha: 0.25),
         ),
         const SizedBox(width: 6),
         Text(label, style: TextStyle(
           fontSize: 12,
-          color: visible ? _kTextPrimary : _kTextSecondary.withOpacity(0.5),
+          color: visible ? _kTextPrimary : _kTextSecondary.withValues(alpha: 0.5),
         )),
       ]),
     );

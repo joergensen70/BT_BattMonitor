@@ -132,7 +132,6 @@ class BmsService {
   bool _lionAutoDiscoverDoneLogged = false;
   int _lionPollCount = 0;
   int _lionBurstPollsRemaining = 0;
-  bool _fff3RejectsLongWrites = false;
   List<int>? _lastTxPayload;
   int _pollAttemptsWithoutValidFrame = 0;
   bool _reportedProtocolFailure = false;
@@ -1283,7 +1282,6 @@ class BmsService {
           final short = _shortUuid(c.characteristicUuid.toString());
           final msg = e.toString();
           if (short == 'fff3' && payload.length > 1 && msg.contains('android-code: 13')) {
-            _fff3RejectsLongWrites = true;
             _log('Marking fff3 as unsuitable for long writes after invalid-length error');
           }
           _log('Write mode failed on ${c.characteristicUuid}: $e');
@@ -1412,7 +1410,6 @@ class BmsService {
     _lionAutoDiscoverDoneLogged = false;
     _lionPollCount = 0;
     _lionBurstPollsRemaining = 0;
-    _fff3RejectsLongWrites = false;
     _lastTxPayload = null;
     _pollAttemptsWithoutValidFrame = 0;
     _reportedProtocolFailure = false;
