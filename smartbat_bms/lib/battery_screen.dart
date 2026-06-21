@@ -23,6 +23,8 @@ const _kCritical      = Color(0xFFFF5D5D);
 const _kTextPrimary   = Color(0xFFEAF2FF);
 const _kTextSecondary = Color(0xFF9FB0C8);
 
+enum _BatteryCardViewMode { status, cells }
+
 // ── Per-battery slot state ────────────────────────────────────────────────────
 class _BattSlot {
   BluetoothDevice? device;
@@ -32,6 +34,7 @@ class _BattSlot {
   String savedName = '';  // fallback when platformName is empty (auto-reconnect)
   DateTime? lastDataAt;
   List<String> logs = [];
+  _BatteryCardViewMode viewMode = _BatteryCardViewMode.status;
 
   StreamSubscription? dataSub;
   StreamSubscription? connSub;
@@ -65,6 +68,7 @@ class _BattSlot {
     lastDataAt = null;
     status = '';
     logs.clear();
+    viewMode = _BatteryCardViewMode.status;
   }
 }
 
@@ -90,7 +94,6 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   static const Duration _connectTimeout = Duration(seconds: 15);
   static const Duration _staleThreshold = Duration(seconds: 30);
   static const String _kAppVersion = 'v1.3.1';
-  static const bool _showCellDetails = false;
   static const double _kFrameGap = 6.0;
   Timer? _staleTimer;
   StreamSubscription<BatteryData>? _demoASub;
@@ -505,6 +508,11 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     await _reconnectSlot(slot);
   }
 
+  void _setSlotViewMode(_BattSlot slot, _BatteryCardViewMode mode) {
+    if (!mounted || slot.viewMode == mode) return;
+    setState(() => slot.viewMode = mode);
+  }
+
   Future<void> _shareDebugLog() async {
     try {
       final path = await _debugLog.exportSnapshot();
@@ -760,6 +768,10 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             if (slot.status.isNotEmpty && slot.data == null)
               Text(slot.status,
                   style: const TextStyle(color: _kTextSecondary, fontSize: 11)),
+            if (slot.data != null) ...[
+              const SizedBox(width: 8),
+              _buildCardModeToggle(slot),
+            ],
             const SizedBox(width: 4),
             InkWell(
               onTap: isRefreshing ? null : () async {
@@ -799,12 +811,25 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             ]),
           )
         else
-          _buildSlotData(slot.data!),
+          _buildSlotData(slot, slot.data!),
       ]),
     );
   }
 
-  Widget _buildSlotData(BatteryData d) {
+  Widget _buildSlotData(_BattSlot slot, BatteryData d) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+      child: IndexedStack(
+        index: slot.viewMode == _BatteryCardViewMode.cells ? 1 : 0,
+        children: [
+          _buildStatusView(slot, d),
+          _buildCellsView(slot, d),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusView(_BattSlot slot, BatteryData d) {
     final Color socColor = d.soc > 60 ? _kAccent : d.soc > 25 ? _kWarning : _kCritical;
     final IconData statusIcon = d.isCharging
         ? Icons.bolt
@@ -822,9 +847,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       timeHint = h > 0 ? 'DSC  ${h}h ${m}min left' : 'DSC  ${m}min left';
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           SizedBox(width: 95, height: 95,
             child: CustomPaint(
@@ -893,11 +916,6 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             }).toList()),
         ],
 
-        if (_showCellDetails && d.cellVoltages.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          _buildCellsCompact(d),
-        ],
-
         if (d.activeProtections.isNotEmpty) ...[
           const SizedBox(height: 8),
           ...d.activeProtections.map((p) => Row(children: [
@@ -906,8 +924,78 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             Text(p, style: const TextStyle(color: _kCritical, fontSize: 13)),
           ])),
         ],
+      ]);
+  }
+
+  Widget _buildCellsView(_BattSlot slot, BatteryData d) {
+    if (d.cellVoltages.isEmpty) {
+      return Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.grid_view_rounded, size: 34, color: _kTextSecondary),
+          const SizedBox(height: 10),
+          const Text('No cell data available',
+              style: TextStyle(color: _kTextPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          const Text('This battery currently exposes pack-level values only.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: _kTextSecondary, fontSize: 12)),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () => _setSlotViewMode(slot, _BatteryCardViewMode.status),
+            icon: const Icon(Icons.arrow_back, size: 16),
+            label: const Text('Back to status'),
+          ),
+        ]),
+      );
+    }
+
+    final voltages = d.cellVoltages;
+    final minV = voltages.reduce(min);
+    final maxV = voltages.reduce(max);
+    final avgV = voltages.reduce((a, b) => a + b) / voltages.length;
+    final deltaMv = ((maxV - minV) * 1000).round();
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Row(children: [
+        const Icon(Icons.grid_view_rounded, color: _kAccent, size: 15),
+        const SizedBox(width: 6),
+        const Text('Cell details',
+            style: TextStyle(color: _kTextPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+        const Spacer(),
+        TextButton.icon(
+          onPressed: () => _setSlotViewMode(slot, _BatteryCardViewMode.status),
+          icon: const Icon(Icons.arrow_back, size: 15),
+          label: const Text('Status'),
+          style: TextButton.styleFrom(
+            foregroundColor: _kTextSecondary,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
       ]),
-    );
+      const SizedBox(height: 8),
+      Row(children: [
+        Expanded(child: _cellsStatChip('Min', '${(minV * 1000).round()} mV', _kCritical)),
+        const SizedBox(width: 6),
+        Expanded(child: _cellsStatChip('Max', '${(maxV * 1000).round()} mV', _kAccent)),
+        const SizedBox(width: 6),
+        Expanded(child: _cellsStatChip('Delta', '$deltaMv mV',
+            deltaMv > 50 ? _kWarning : _kInfo)),
+      ]),
+      const SizedBox(height: 6),
+      Row(children: [
+        Expanded(child: _cellsStatChip('Average', '${avgV.toStringAsFixed(3)} V', _kTextPrimary)),
+        const SizedBox(width: 6),
+        Expanded(child: _cellsStatChip('Pack', '${d.voltage.toStringAsFixed(3)} V', _kWarning)),
+        const SizedBox(width: 6),
+        Expanded(child: _cellsStatChip('Count', '${voltages.length}', _kTextSecondary)),
+      ]),
+      const SizedBox(height: 8),
+      _buildCellsCompact(d, expanded: true),
+    ]);
   }
 
   Widget _inlineStatRow(String label, String value, IconData icon, Color color) {
@@ -926,29 +1014,86 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     );
   }
 
-  Widget _buildCellsCompact(BatteryData d) {
+  Widget _buildCardModeToggle(_BattSlot slot) {
+    final isCells = slot.viewMode == _BatteryCardViewMode.cells;
+    return Container(
+      decoration: BoxDecoration(
+        color: _kBg.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _kTextSecondary.withValues(alpha: 0.18)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        _modeTogglePill(slot, _BatteryCardViewMode.status, 'Status', !isCells),
+        _modeTogglePill(slot, _BatteryCardViewMode.cells, 'Cells', isCells),
+      ]),
+    );
+  }
+
+  Widget _modeTogglePill(
+      _BattSlot slot, _BatteryCardViewMode mode, String label, bool selected) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: () => _setSlotViewMode(slot, mode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? _kAccent.withValues(alpha: 0.18) : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: selected ? _kAccent : _kTextSecondary,
+            )),
+      ),
+    );
+  }
+
+  Widget _cellsStatChip(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      decoration: BoxDecoration(
+        color: _kSurfaceElev,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: const TextStyle(fontSize: 10, color: _kTextSecondary)),
+        const SizedBox(height: 2),
+        Text(value,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+      ]),
+    );
+  }
+
+  Widget _buildCellsCompact(BatteryData d, {bool expanded = false}) {
     final voltages = d.cellVoltages;
     final minV = voltages.reduce(min);
     final maxV = voltages.reduce(max);
     final deltaMs = ((maxV - minV) * 1000).round();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Row(children: [
-        const Icon(Icons.grid_view, color: _kAccent, size: 14),
-        const SizedBox(width: 4),
-        const Text('Cells', style: TextStyle(color: _kTextSecondary, fontSize: 12)),
-        const Spacer(),
-        Text('Δ $deltaMs mV',
-            style: TextStyle(fontSize: 11,
-                color: deltaMs > 50 ? _kWarning : _kTextSecondary)),
-      ]),
-      const SizedBox(height: 4),
+      if (!expanded) ...[
+        Row(children: [
+          const Icon(Icons.grid_view, color: _kAccent, size: 14),
+          const SizedBox(width: 4),
+          const Text('Cells', style: TextStyle(color: _kTextSecondary, fontSize: 12)),
+          const Spacer(),
+          Text('Δ $deltaMs mV',
+              style: TextStyle(fontSize: 11,
+                  color: deltaMs > 50 ? _kWarning : _kTextSecondary)),
+        ]),
+        const SizedBox(height: 4),
+      ],
       GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         padding: EdgeInsets.zero,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4, childAspectRatio: 1.7,
-            mainAxisSpacing: 4, crossAxisSpacing: 4),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            childAspectRatio: expanded ? 1.45 : 1.7,
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 4),
         itemCount: voltages.length,
         itemBuilder: (_, i) {
           final v = voltages[i];
@@ -968,6 +1113,11 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
               Text('${(v * 1000).round()}',
                   style: const TextStyle(
                       fontSize: 11, fontWeight: FontWeight.bold, color: _kTextPrimary)),
+              if (expanded)
+                Text('${v.toStringAsFixed(3)} V',
+                    style: TextStyle(
+                        fontSize: 9,
+                        color: isMin ? _kCritical : isMax ? _kAccent : _kTextSecondary)),
             ]),
           );
         },

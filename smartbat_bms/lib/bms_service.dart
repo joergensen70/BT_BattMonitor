@@ -62,6 +62,24 @@ class BmsService {
     '+RAA4802',
   ];
 
+  static const List<String> _lionAltCellProbeCommands = [
+    '+R163F02',
+    '+R163E02',
+    '+R163D02',
+    '+R163C02',
+    '+R163B02',
+    '+R163A02',
+    '+R163902',
+    '+R163802',
+    '+R163702',
+    '+R163602',
+    '+R163502',
+    '+R163402',
+    '+R163302',
+    '+R163202',
+    '+R163102',
+  ];
+
   // Deterministic replay mode for protocol comparison runs.
   // Keeps command order fixed across runs to make raw-byte diffs reliable.
   static const bool _lionFixedReplayMode = false; // disabled: using XOR-encoded writes
@@ -153,6 +171,8 @@ class BmsService {
   int? _lionCycles;       // Cycle count
   int? _lionAtte;         // Time to empty (minutes)
   int? _lionAttf;         // Time to full (minutes)
+  final Map<int, int> _lionCellVoltagesMv = {};
+  int _lionAltCellProbeIndex = 0;
 
   // ── Gateway autonomous test matrix ──────────────────────────────────────────
   // Iterates ALL (command × characteristic × writeMode) permutations, logs each
@@ -204,6 +224,7 @@ class BmsService {
   static const int _maxJbdProbePolls = 4;
   static const int _maxTotalProbePolls = 16;
   static const int _lionFastBurstPolls = 180;
+  static const int _lionAltCellProbeEveryPolls = 80;
   static const int _rxSummaryEvery = 40;
   static const Duration _lionFastPollInterval   = Duration(milliseconds: 60);
   static const Duration _lionSteadyPollInterval = Duration(milliseconds: 100);
@@ -752,7 +773,9 @@ class BmsService {
         // Cell voltage registers: +RD,3X where X encodes cell index
         if (str.length >= 6 && str[4] == '3') {
           final cell = 16 - int.parse(str.substring(5, 6), radix: 16);
-          _log('Lion Cell[$cell]: ${le16()} mV');
+          final mv = le16();
+          _lionCellVoltagesMv[cell] = mv;
+          _log('Lion Cell[$cell]: $mv mV');
         } else {
           _rxUnknownFrames++;
           _log('Lion: unknown register $type');
@@ -786,6 +809,7 @@ class BmsService {
     final nominalAh = (_lionFccRaw != null && _lionRatio != 0)
         ? (_lionFccRaw! * _lionRatio) / 1000.0 / 1000.0
         : 0.0;
+    final cellVoltages = _currentLionCellVoltages();
 
     _lastBasic = BatteryData(
       voltage:          voltage,
@@ -795,8 +819,8 @@ class BmsService {
       cycles:           _lionCycles ?? (_lastBasic?.cycles ?? 0),
       soc:              _lionSoc!.clamp(0, 100),
       temperatures:     [tempC],
-      cellVoltages:     _lastBasic?.cellVoltages ?? [],
-      cellCount:        _lastBasic?.cellCount ?? 0,
+      cellVoltages:     cellVoltages.isNotEmpty ? cellVoltages : (_lastBasic?.cellVoltages ?? []),
+      cellCount:        cellVoltages.isNotEmpty ? cellVoltages.length : (_lastBasic?.cellCount ?? 0),
       chargeFet:        true,
       dischargeFet:     true,
       protectionStatus: 0,
@@ -811,6 +835,12 @@ class BmsService {
     );
     _setStatus('Data received');
     _emit(_lastBasic!);
+  }
+
+  List<double> _currentLionCellVoltages() {
+    if (_lionCellVoltagesMv.isEmpty) return const [];
+    final indices = _lionCellVoltagesMv.keys.toList()..sort();
+    return [for (final index in indices) _lionCellVoltagesMv[index]! / 1000.0];
   }
 
   void _parseBasic(List<int> d) {
@@ -1171,6 +1201,23 @@ class BmsService {
         );
         await _writeOnCandidates(payload, preferred: preferred);
 
+        if (_lionCellVoltagesMv.isEmpty &&
+            _lionPollCount % _lionAltCellProbeEveryPolls == 0) {
+          final probeCommand = _lionAltCellProbeCommands[
+              _lionAltCellProbeIndex % _lionAltCellProbeCommands.length];
+          _lionAltCellProbeIndex =
+              (_lionAltCellProbeIndex + 1) % _lionAltCellProbeCommands.length;
+          final probeRaw = ascii.encode(probeCommand);
+          final probePayload = Uint8List.fromList(
+            probeRaw.map((b) => b ^ _lionXorKey).toList(),
+          );
+          _log(
+            'TX Lion ALT probe $probeCommand (${probePayload.length}b) '
+            '[XOR 0x${_lionXorKey.toRadixString(16).padLeft(2, '0').toUpperCase()}]',
+          );
+          await _writeOnCandidates(probePayload, preferred: preferred);
+        }
+
         _maybeAutoDiscoverRotate();
 
         // The original app is notify-driven; keep reads as sparse fallback probes.
@@ -1410,6 +1457,8 @@ class BmsService {
     _lionAutoDiscoverDoneLogged = false;
     _lionPollCount = 0;
     _lionBurstPollsRemaining = 0;
+    _lionCellVoltagesMv.clear();
+    _lionAltCellProbeIndex = 0;
     _lastTxPayload = null;
     _pollAttemptsWithoutValidFrame = 0;
     _reportedProtocolFailure = false;
