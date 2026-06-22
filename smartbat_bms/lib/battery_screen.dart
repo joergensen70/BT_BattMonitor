@@ -40,6 +40,7 @@ class _BattSlot {
   StreamSubscription? connSub;
   StreamSubscription<String>? statusSub;
   StreamSubscription<String>? logSub;
+  int connectEpoch = 0;
 
   bool get isConnected => device != null;
   bool get hasData => data != null || lastDataAt != null;
@@ -94,7 +95,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   static const Duration _connectTimeout = Duration(seconds: 15);
   static const Duration _staleThreshold = Duration(seconds: 30);
   static const String _kAppVersion = 'v1.3.1';
-  static const double _kFrameGap = 6.0;
+  static const double _kFrameGap = 4.0;
   Timer? _staleTimer;
   StreamSubscription<BatteryData>? _demoASub;
   StreamSubscription<BatteryData>? _demoBSub;
@@ -266,9 +267,12 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       return;
     }
 
-    await _slotA.teardown();
-    await _slotB.teardown();
-    if (!mounted) return;
+    // Capture active services and cancel streams immediately so mode switch
+    // is responsive even while BLE connect timeouts/retries are running.
+    final prevAService = _slotA.service;
+    final prevBService = _slotB.service;
+    _slotA.cancelAll();
+    _slotB.cancelAll();
 
     _stopDemoStreams();
     setState(() {
@@ -282,6 +286,9 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       _slotB.data = null;
       _slotB.lastDataAt = null;
     });
+
+    if (prevAService != null) unawaited(prevAService.disconnect());
+    if (prevBService != null) unawaited(prevBService.disconnect());
 
     _listenDemoStreams();
     DemoDataGenerator.instance.start();
@@ -441,17 +448,28 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   Future<void> _connect(_BattSlot slot) async {
     slot.dataSub?.cancel();
     slot.connSub?.cancel();
+    final epoch = ++slot.connectEpoch;
+
+    bool isStale() {
+      return slot.connectEpoch != epoch ||
+          _disposed ||
+          !mounted ||
+          _demoMode ||
+          _isSwitchingMode ||
+          !slot.isConnected;
+    }
+
     slot.connSub = slot.device!.connectionState.listen((state) async {
-      if (_demoMode || _isSwitchingMode) return;
+      if (isStale()) return;
       if (mounted && state == BluetoothConnectionState.disconnected && !_disposed) {
         _pushSlotLog(slot, 'BLE connection state changed to disconnected');
         await slot.service?.disconnect();
-        if (!mounted || _disposed) return;
+        if (isStale()) return;
         setState(() => slot.status = 'Disconnected');
       }
     });
     slot.dataSub = slot.service!.dataStream.listen((d) {
-      if (_demoMode || _isSwitchingMode) return;
+      if (isStale()) return;
       if (mounted) setState(() {
         slot.data = d;
         slot.lastDataAt = DateTime.now();
@@ -467,24 +485,26 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     });
 
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {
-      if (_disposed || !mounted) return;
+      if (isStale()) return;
       try {
         if (attempt > 1) {
+          if (isStale()) return;
           if (mounted) setState(() => slot.status = 'Retrying ($attempt/$_maxRetries)…');
           await Future.delayed(_retryDelay);
-          if (_disposed || !mounted) return;
+          if (isStale()) return;
           await slot.service!.disconnect();
           await Future.delayed(const Duration(milliseconds: 500));
-          if (_disposed || !mounted) return;
+          if (isStale()) return;
         }
         await slot.service!.connect(slot.device!)
             .timeout(_connectTimeout, onTimeout: () {
           throw TimeoutException('Connection timed out after ${_connectTimeout.inSeconds}s');
         });
+        if (isStale()) return;
         if (mounted && !slot.hasData) setState(() => slot.status = 'Connected – waiting…');
         return;
       } catch (e) {
-        if (_disposed || !mounted) return;
+        if (isStale()) return;
         final isFinal = attempt == _maxRetries;
         setState(() => slot.status = isFinal
             ? 'Disconnected – out of range'
@@ -498,9 +518,25 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     _pushSlotLog(slot, 'UI disconnect requested');
     final macKey  = slot == _slotA ? _prefKeyA : _prefKeyB;
     final nameKey = slot == _slotA ? _prefNameA : _prefNameB;
+    slot.connectEpoch++;
+
+    final oldService = slot.service;
+    slot.cancelAll();
+    if (mounted) {
+      setState(() {
+        slot.device = null;
+        slot.data = null;
+        slot.lastDataAt = null;
+        slot.status = '';
+        slot.logs.clear();
+      });
+    }
+
+    if (oldService != null) {
+      unawaited(oldService.disconnect());
+    }
+
     await _saveSlot(macKey, nameKey, null, null);
-    await slot.teardown();
-    if (mounted) setState(() {});
   }
 
   Future<void> _refreshSlot(_BattSlot slot) async {
@@ -819,13 +855,9 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   Widget _buildSlotData(_BattSlot slot, BatteryData d) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-      child: IndexedStack(
-        index: slot.viewMode == _BatteryCardViewMode.cells ? 1 : 0,
-        children: [
-          _buildStatusView(slot, d),
-          _buildCellsView(slot, d),
-        ],
-      ),
+      child: slot.viewMode == _BatteryCardViewMode.cells
+          ? _buildCellsView(slot, d)
+          : _buildStatusView(slot, d),
     );
   }
 
@@ -889,14 +921,14 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
         const SizedBox(height: 4),
         Text(
-            '${d.remainingAh.toStringAsFixed(1)} Ah  /  ${d.nominalAh.toStringAsFixed(1)} Ah',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: _kTextSecondary, fontSize: 12)),
-        if (timeHint != null) ...[
-          const SizedBox(height: 2),
-          Text(timeHint, textAlign: TextAlign.center,
-              style: const TextStyle(color: _kTextSecondary, fontSize: 11)),
-        ],
+          timeHint == null
+              ? '${d.remainingAh.toStringAsFixed(1)} Ah  /  ${d.nominalAh.toStringAsFixed(1)} Ah'
+              : '${d.remainingAh.toStringAsFixed(1)} Ah  /  ${d.nominalAh.toStringAsFixed(1)} Ah   •   $timeHint',
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: _kTextSecondary, fontSize: 11),
+        ),
 
         if (d.temperatures.isNotEmpty) ...[
           const SizedBox(height: 6),
