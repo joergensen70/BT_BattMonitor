@@ -116,7 +116,7 @@ Status:
 - Android test path is the recommended and intended route now.
 - Android device (`SM_S936B` / `R3CY30DH49E`) is now connected, authorized, and usable as Flutter run target.
 - App deploy/start on Android succeeds via build + adb install/launch workflow.
-- Current release target version is `1.3.2`.
+- Current release target version is `1.3.3`.
 - Demo mode is available for UI validation when live batteries are not connected.
 - Protocol investigation conclusion (validated across long load captures):
 	- Pack-level registers are stable and readable.
@@ -130,8 +130,12 @@ Next execution focus:
 
 Release checkpoint (2026-06-22):
 - Working tree reset to git baseline before release prep.
-- Version bumped to `1.3.2+6` for next official release candidate.
+- Version bumped to `1.3.3+7` for next official release candidate.
 - Deployment runbook and project brain synced to release target.
+
+Hotfix note (2026-06-22):
+- In-app About/version label was hardcoded (`v1.3.1`) while package version had moved forward.
+- Release `1.3.3` aligns displayed app version and Android package version.
 
 ## 8) Update Rules for This Brain
 
