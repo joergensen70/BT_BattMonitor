@@ -116,14 +116,22 @@ Status:
 - Android test path is the recommended and intended route now.
 - Android device (`SM_S936B` / `R3CY30DH49E`) is now connected, authorized, and usable as Flutter run target.
 - App deploy/start on Android succeeds via build + adb install/launch workflow.
-- Current release target version is `1.3.1`.
+- Current release target version is `1.3.2`.
 - Demo mode is available for UI validation when live batteries are not connected.
+- Protocol investigation conclusion (validated across long load captures):
+	- Pack-level registers are stable and readable.
+	- Cell-level values are not exposed for the tested SmartBat-A protocol path.
+	- Aggressive ALT/MODE probe sweeps did not produce reliable `Lion Cell[n]` outputs and are not considered release behavior.
 
 Next execution focus:
-- Continue BLE protocol validation against real batteries
-- Verify whether cell data can be extracted from live BMS traffic
-- Keep demo mode aligned with dashboard UX during live feature changes
-- Create and publish tagged releases after validated device deploys
+- Maintain stable pack-level monitoring behavior on Android hardware.
+- Keep capture/debug tooling available for future battery variants without changing release defaults.
+- Create and publish tagged releases after validated device deploys.
+
+Release checkpoint (2026-06-22):
+- Working tree reset to git baseline before release prep.
+- Version bumped to `1.3.2+6` for next official release candidate.
+- Deployment runbook and project brain synced to release target.
 
 ## 8) Update Rules for This Brain
 

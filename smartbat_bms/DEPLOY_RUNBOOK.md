@@ -7,7 +7,7 @@ This is the standard repeatable workflow for test deployments.
 - Phone connected via USB and visible in ADB.
 - Target package name: `com.smartbat.bms`.
 - Project root for build: `smartbat_bms`.
-- Current app version: `1.3.1`.
+- Current app version: `1.3.2`.
 
 ## Standard flow
 
@@ -36,9 +36,9 @@ This is the standard repeatable workflow for test deployments.
 ## Release Flow
 
 1. Build the release APK from `smartbat_bms`:
-   - `powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version "1.3.1"`
+   - `powershell -ExecutionPolicy Bypass -File .\release.ps1 -Version "1.3.2"`
 2. Expected release artifact:
-   - `rel\odin-smartbat-v1.3.1.apk`
+   - `rel\odin-smartbat-v1.3.2.apk`
 3. Create Git tag and GitHub release after validation.
 
 ## Notes
