@@ -251,6 +251,31 @@ Validated 2026-07-02 against SmartBat-A05301 (70% SoC, 13.23V, −3.75A, 25.6°C
 
 Full implementation spec: HomeAssistent/modules/camper/battery-monitor/panther-bms-integration-spec.md
 
+### IMPL-008 — Bug: both batteries display 200Ah nominal capacity (incorrect)
+
+**Observed (2026-07-02):** Both batteries show 200Ah on the dashboard.
+One battery (SmartBat-A05301) has a confirmed nominal capacity of 100Ah
+(register 0x3C = 100.00Ah per IMPL-007). The second battery is likely also
+≤100Ah, not 200Ah.
+
+**Investigation needed:**
+- Check where the 200Ah value originates — register 0x3C decode path in
+  `smartbat_bms/lib/bms_service.dart` (field `nominalCapacityAh`).
+- Check if the decode multiplies by 2 by mistake, or if the UI formula doubles
+  the raw value.
+- Check if a fallback/default value of 200 is hardcoded anywhere in
+  `bms_service.dart` or `battery_screen.dart`.
+- Confirm actual raw bytes returned by register 0x3C for both batteries via
+  logcat, then verify the decode formula against IMPL-007:
+  `uint16_le(b[0:2]) × b[2] / 1000 = Ah`.
+
+**Expected fix:** Each battery must display its own individual nominal capacity
+as decoded from its own register 0x3C response. No hardcoded fallback allowed.
+
+**Status:** OPEN — not yet investigated.
+
+---
+
 ## 9) Update Rules for This Brain
 
 When we learn something important, append/update:
@@ -261,20 +286,30 @@ When we learn something important, append/update:
 
 ## 9) Resume Checkpoint
 
-Date: 2026-07-02
+Date: 2026-07-02  (updated end of session)
 
-Done today:
-- IMPL-001: Removed JBD protocol entirely from `bms_service.dart`. App now enters
-  LionCheck mode directly on connect without any JBD probe phase.
-- IMPL-007: Removed Error1-returning registers (0x18/0x1A/0x28) and all +R163X
-  alt-cell-probe commands from bootstrap and extended-sweep poll lists.
-- IMPL-002: Fixed dual-battery combined power display in `_buildSummaryStrip`.
-- Version bumped to `1.3.4+8`. In-app label, pubspec, runbook, and brain updated.
-- Release APK built, committed, pushed to `main`, tagged `v1.3.4`.
+### Done today (BT_BattMonitor side)
+- IMPL-001: Removed JBD protocol from `bms_service.dart`. LionCheck mode directly on connect.
+- IMPL-007: Removed Error1 registers (0x18/0x1A/0x28) and all +R163X alt-cell-probe commands.
+- IMPL-002: Fixed dual-battery combined power display (`_buildSummaryStrip`).
+- Version bumped to `1.3.4+8`. Release APK built, tagged `v1.3.4`.
 
-Next:
-- Validate on device: connect to SmartBat, confirm clean bootstrap with no
-  JBD disconnect events in logcat, confirm power display in dual-battery view.
-- No other pending IMPL items.
+### Critical protocol findings confirmed for HA integration (2026-07-02)
+- **RX is also XOR-encoded** — same key as TX. This was the root cause of no data
+  in the HA integration. Both TX and RX use `byte ^ xor_key`.
+- **Register 0x2C = cycles** (not 0x48 as originally speculated). 0x48 is mfg date.
+- **Connection pattern normal**: BMS connects, sends data ~7–15 s, disconnects.
+  HA coordinator reconnects immediately. Data flows during each session.
+- **Capacity formula**: `(raw × ratio) / 1000` = Ah (ONE division, not two).
+- **Dart _tryEmitLionData has a double /1000.0 bug** — the Python port uses one.
+- **Temperature**: `(raw - 2731) / 10.0` °C (note: 2731 not 2730).
+- **Current signed**: `if raw > 32768: raw -= 65535` (not 65536).
+- All findings ported into `HomeAssistent/modules/camper/battery-monitor/
+  custom_components/panther_bms/protocol.py` — direct Python port of bms_service.dart.
+
+### Next
+- Validate IMPL-001/002/007 on Android device (confirm clean bootstrap, power display).
+- IMPL-008: Investigate 200Ah incorrect nominal capacity display (register 0x3C decode).
+- Add second SmartBat battery to HA integration (panther_bms Add Integration → Batt 2).
 
 remember where to continue tomorrow.
