@@ -94,7 +94,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   static const Duration _retryDelay = Duration(seconds: 3);
   static const Duration _connectTimeout = Duration(seconds: 15);
   static const Duration _staleThreshold = Duration(seconds: 30);
-  static const String _kAppVersion = 'v1.3.3';
+  static const String _kAppVersion = 'v1.3.4';
   static const double _kFrameGap = 4.0;
   Timer? _staleTimer;
   StreamSubscription<BatteryData>? _demoASub;
@@ -1161,7 +1161,10 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     final totalRemainingAh = a.remainingAh + b.remainingAh;
     final totalNominalAh   = a.nominalAh   + b.nominalAh;
     final totalCurrent     = a.current     + b.current;
-    final totalPower       = a.voltage * a.current.abs() + b.voltage * b.current.abs();
+    final powerA           = a.voltage * a.current;
+    final powerB           = b.voltage * b.current;
+    final totalPower       = powerA.clamp(double.negativeInfinity, 0.0).abs()
+                           + powerB.clamp(double.negativeInfinity, 0.0).abs();
     final combinedSoc      = totalNominalAh > 0
         ? (totalRemainingAh / totalNominalAh * 100).round() : 0;
     final isCharging    = totalCurrent > 0.1;

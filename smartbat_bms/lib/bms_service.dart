@@ -9,15 +9,6 @@ class BmsService {
   static const String _fff1Uuid = "0000fff1-0000-1000-8000-00805f9b34fb";
   static const String _fff2Uuid = "0000fff2-0000-1000-8000-00805f9b34fb";
 
-  // JBD-compatible protocol commands
-  // Format: DD A5 <register> 00 <checksum_hi> <checksum_lo> 77
-  // Checksum = 0x10000 - register (for 0-length payload)
-  static const _cmdBasicInfo    = [0xDD, 0xA5, 0x03, 0x00, 0xFF, 0xFD, 0x77];
-  static const _cmdCellVoltages = [0xDD, 0xA5, 0x04, 0x00, 0xFF, 0xFC, 0x77];
-  // Some clones use swapped checksum byte order for command frames.
-  static const _cmdBasicInfoAltEndian    = [0xDD, 0xA5, 0x03, 0x00, 0xFD, 0xFF, 0x77];
-  static const _cmdCellVoltagesAltEndian = [0xDD, 0xA5, 0x04, 0x00, 0xFC, 0xFF, 0x77];
-
   // Captured from LionCheck app session: 8-byte ASCII command frames.
   // Phase 1 (bootstrap): broad register sweep once after connect.
   static const List<String> _lionBootstrapCommands = [
@@ -28,9 +19,6 @@ class BmsService {
     '+RAA0403',
     '+RAA3C03',
     '+RAA0603',
-    '+RAA1802',
-    '+RAA1A02',
-    '+RAA2802',
     '+RAA4802',
     '+RAA0202',
     '+RAA2C02', // Found via APK string analysis (was missing from previous list)
@@ -56,28 +44,7 @@ class BmsService {
     '+RAA0403',
     '+RAA3C03',
     '+RAA0603',
-    '+RAA1802',
-    '+RAA1A02',
-    '+RAA2802',
     '+RAA4802',
-  ];
-
-  static const List<String> _lionAltCellProbeCommands = [
-    '+R163F02',
-    '+R163E02',
-    '+R163D02',
-    '+R163C02',
-    '+R163B02',
-    '+R163A02',
-    '+R163902',
-    '+R163802',
-    '+R163702',
-    '+R163602',
-    '+R163502',
-    '+R163402',
-    '+R163302',
-    '+R163202',
-    '+R163102',
   ];
 
   // Deterministic replay mode for protocol comparison runs.
@@ -130,11 +97,8 @@ class BmsService {
   final List<BluetoothCharacteristic> _writeCandidates = [];
   final List<BluetoothCharacteristic> _notifyCandidates = [];
   final List<BluetoothCharacteristic> _readCandidates = [];
-  int _writeCandidateIndex = 0;
   bool _hasValidFrame = false;
   int _echoFrameCount = 0;
-  int _commandProfileIndex = 0;
-  int _lastAnnouncedProfileIndex = -1;
   bool _preferWriteWithoutResponse = true;
   bool _useLionCommandSet = false;
   bool _smartBatNativeSeen = false;
@@ -151,8 +115,6 @@ class BmsService {
   int _lionPollCount = 0;
   int _lionBurstPollsRemaining = 0;
   List<int>? _lastTxPayload;
-  int _pollAttemptsWithoutValidFrame = 0;
-  bool _reportedProtocolFailure = false;
   int _rxTotalFrames = 0;
   int _rxEchoFrames = 0;
   int _rxHeartbeatFrames = 0;
@@ -172,7 +134,6 @@ class BmsService {
   int? _lionAtte;         // Time to empty (minutes)
   int? _lionAttf;         // Time to full (minutes)
   final Map<int, int> _lionCellVoltagesMv = {};
-  int _lionAltCellProbeIndex = 0;
 
   // ── Gateway autonomous test matrix ──────────────────────────────────────────
   // Iterates ALL (command × characteristic × writeMode) permutations, logs each
@@ -221,10 +182,7 @@ class BmsService {
   bool _gwDone = false;
   _GwResult? _gwCurrentResult;
 
-  static const int _maxJbdProbePolls = 4;
-  static const int _maxTotalProbePolls = 16;
   static const int _lionFastBurstPolls = 180;
-  static const int _lionAltCellProbeEveryPolls = 80;
   static const int _rxSummaryEvery = 40;
   static const Duration _lionFastPollInterval   = Duration(milliseconds: 60);
   static const Duration _lionSteadyPollInterval = Duration(milliseconds: 100);
@@ -501,24 +459,16 @@ class BmsService {
       }
     }
 
-    if (_smartBatNativeSeen && !_useLionCommandSet) {
-      _switchToLion('SmartBat-native frames detected during init reads');
-    }
-
+    _switchToLion('SmartBat LionCheck protocol');
     _setStatus('Connected');
     await requestSnapshot();
-    if (!_useLionCommandSet) {
-      _restartPollTimer(const Duration(milliseconds: 1000));
-    }
   }
 
   void _onData(List<int> chunk) {
     _log('RX chunk ${_hex(chunk)}');
 
     // XOR-decode received bytes (LionCheck applies same key to TX and RX).
-    final decoded = _useLionCommandSet
-        ? chunk.map((b) => b ^ _lionXorKey).toList()
-        : chunk;
+    final decoded = chunk.map((b) => b ^ _lionXorKey).toList();
 
     // Echo check: compare against the *encoded* last TX payload (device echoes
     // back the raw bytes it received, not the decoded form).
@@ -547,120 +497,18 @@ class BmsService {
   }
 
   void _drain() {
-    // Lion mode: responses are ASCII lines terminated with \r\n.
-    if (_useLionCommandSet) {
-      while (true) {
-        final crIdx = _buf.indexOf(0x0D);
-        if (crIdx < 0) break;
-        final line = _buf.sublist(0, crIdx);
-        final skip = (crIdx + 1 < _buf.length && _buf[crIdx + 1] == 0x0A)
-            ? crIdx + 2
-            : crIdx + 1;
-        _buf.removeRange(0, skip);
-        if (line.isEmpty) continue;
-        _parseLionLine(line);
-        _logRxSummary();
-      }
-      return;
-    }
-
-    while (_buf.length >= 4) {
-      final start = _buf.indexOf(0xDD);
-      if (start < 0) {
-        // No JBD frame in buffer - log as SmartBat native / Lion response
-        final frame = _buf.toList();
-        _log('RX SmartBat-native (${frame.length}b): ${_hex(frame)}');
-        _tryParseSmartBatFrame(frame);
-        _buf.clear();
-        _logRxSummary();
-        return;
-      }
-      if (start > 0)  _buf.removeRange(0, start);
-      if (_buf.length < 4) return;
-
-      final reg    = _buf[1];
-      final status = _buf[2];
-      final len    = _buf[3];
-      final total  = 4 + len + 3; // header(4) + data(len) + checksum(2) + end(1)
-      if (_buf.length < total) return;
-      if (_buf[total - 1] != 0x77) { _buf.removeAt(0); continue; }
-
-      final frame = _buf.sublist(0, total);
-      if (!_hasValidChecksum(frame)) {
-        if (_looksLikeEchoFrame(frame)) {
-          _echoFrameCount++;
-          _rxEchoFrames++;
-          _rxTotalFrames++;
-          if (!_hasValidFrame && _echoFrameCount == 8) {
-            _setStatus('Connected - echo only (protocol mismatch?)');
-          }
-          _log('Ignoring echo frame: ${_hex(frame)}');
-          _buf.removeRange(0, total);
-          _logRxSummary();
-          continue;
-        }
-        _rxUnknownFrames++;
-        _rxTotalFrames++;
-        _log('Discarding frame with invalid checksum: ${_hex(frame)}');
-        _buf.removeAt(0);
-        _logRxSummary();
-        continue;
-      }
-
-      _log('RX frame ${_hex(frame)}');
-      _rxPayloadFrames++;
-      _rxTotalFrames++;
-
-      if (status == 0x00) {
-        _echoFrameCount = 0;
-        final data = _buf.sublist(4, 4 + len);
-        if (reg == 0x03) _parseBasic(data);
-        if (reg == 0x04) _parseCells(data);
-      } else {
-        _log('Device replied with status 0x${status.toRadixString(16).padLeft(2, '0')}');
-      }
-      _buf.removeRange(0, total);
+    while (true) {
+      final crIdx = _buf.indexOf(0x0D);
+      if (crIdx < 0) break;
+      final line = _buf.sublist(0, crIdx);
+      final skip = (crIdx + 1 < _buf.length && _buf[crIdx + 1] == 0x0A)
+          ? crIdx + 2
+          : crIdx + 1;
+      _buf.removeRange(0, skip);
+      if (line.isEmpty) continue;
+      _parseLionLine(line);
       _logRxSummary();
     }
-  }
-
-  /// Attempt to decode SmartBat/LionCheck native response frames.
-  /// Format observed: [type(1)] [reg_or_id(1)] [??(1)] [??(1)] [??(1)] [data...]
-  /// e.g. 01 02 03 04 05 00... = periodic heartbeat / idle status
-  void _tryParseSmartBatFrame(List<int> d) {
-    if (d.isEmpty) return;
-    _smartBatNativeSeen = true;
-    _rxTotalFrames++;
-    // Detect periodic heartbeat: 01 02 03 04 05 [zeros]
-    if (d.length >= 5 && d[0] == 0x01 && d[1] == 0x02 && d[2] == 0x03 &&
-        d[3] == 0x04 && d[4] == 0x05) {
-      _rxHeartbeatFrames++;
-      _gwCurrentResult?.heartbeats++;
-      _log('SmartBat heartbeat frame – bytes 5+: ${_hex(d.sublist(5))}');
-      return;
-    }
-    // Potential Lion register response: [0x01] [reg] [len] [data...]
-    if (d.length >= 3 && d[0] == 0x01) {
-      final reg = d[1];
-      final len = d[2];
-      if (d.length >= 3 + len) {
-        final payload = d.sublist(3, 3 + len);
-        _rxPayloadFrames++;
-        _gwCurrentResult?.payloads++;
-        _log(
-          'SmartBat reg=0x${reg.toRadixString(16).padLeft(2, '0')} '
-          'len=$len data=${_hex(payload)}',
-        );
-        // Legacy binary Lion format — not used when _useLionCommandSet is true
-        // (that path returns early in _drain). Log only.
-        _log('SmartBat binary Lion reg=0x${reg.toRadixString(16).padLeft(2, '0')} payload=${_hex(payload)}');
-        return;
-      }
-    }
-    _rxUnknownFrames++;
-    _gwCurrentResult?.unknowns++;
-    _gwCurrentResult?.noteFrame(_hex(d));
-    _log('SmartBat unknown frame: ${_hex(d)}');
   }
 
   void _logRxSummary({bool force = false}) {
@@ -708,8 +556,6 @@ class BmsService {
     final type = str.substring(0, 6);
     _rxPayloadFrames++;
     _hasValidFrame = true;
-    _pollAttemptsWithoutValidFrame = 0;
-    _reportedProtocolFailure = false;
 
     switch (type) {
       case '+RD,02': // SOC (%)
@@ -745,17 +591,6 @@ class BmsService {
         if (raw > 32768) raw -= 65535;
         _lionCurrentRaw = raw;
         _log('Lion Current raw: $_lionCurrentRaw × ratio=$_lionRatio');
-
-      case '+RD,18': // ATTE — minutes to empty
-        _lionAtte = le16();
-        _log('Lion ATTE: $_lionAtte min');
-
-      case '+RD,1A': // ATTF — minutes to full
-        _lionAttf = le16();
-        _log('Lion ATTF: $_lionAttf min');
-
-      case '+RD,28': // Serial number
-        _log('Lion serial: ${le16()}');
 
       case '+RD,2C': // Cycle count
         _lionCycles = le16();
@@ -843,73 +678,8 @@ class BmsService {
     return [for (final index in indices) _lionCellVoltagesMv[index]! / 1000.0];
   }
 
-  void _parseBasic(List<int> d) {
-    if (d.length < 23) return;
-    _hasValidFrame = true;
-    _pollAttemptsWithoutValidFrame = 0;
-    _reportedProtocolFailure = false;
-    final ntcCount = d[22];
-    final temps = <double>[];
-    for (int i = 0; i < ntcCount && (23 + i * 2 + 1) < d.length; i++) {
-      // Temperature stored as Kelvin * 10 (e.g. 2981 = 25.0 °C)
-      temps.add((_u16(d, 23 + i * 2) - 2731) / 10.0);
-    }
-    _lastBasic = BatteryData(
-      voltage:          _u16(d, 0)  / 100.0,   // 10 mV units → V
-      current:          _s16(d, 2)  / 100.0,   // 10 mA units → A (neg = discharge)
-      remainingAh:      _u16(d, 4)  / 100.0,   // 10 mAh units → Ah
-      nominalAh:        _u16(d, 6)  / 100.0,
-      cycles:           _u16(d, 8),
-      soc:              d[19].clamp(0, 100),
-      temperatures:     temps,
-      cellVoltages:     _lastBasic?.cellVoltages ?? [],
-      cellCount:        d[21],
-      chargeFet:        (d[20] & 0x01) != 0,
-      dischargeFet:     (d[20] & 0x02) != 0,
-      protectionStatus: _u16(d, 16),
-    );
-    _setStatus('Basic data received');
-    _log(
-      'Parsed basic data: ${_lastBasic!.voltage.toStringAsFixed(2)} V, '
-      '${_lastBasic!.current.toStringAsFixed(2)} A, ${_lastBasic!.soc}% SoC',
-    );
-    _emit(_lastBasic!);
-  }
-
-  void _parseCells(List<int> d) {
-    _hasValidFrame = true;
-    _pollAttemptsWithoutValidFrame = 0;
-    _reportedProtocolFailure = false;
-    final volts = [
-      for (int i = 0; i + 1 < d.length; i += 2) _u16(d, i) / 1000.0,
-    ];
-    if (_lastBasic != null) {
-      _lastBasic = _lastBasic!.copyWith(cellVoltages: volts);
-      _setStatus('Cell data received');
-      _log('Parsed ${volts.length} cell voltages');
-      _emit(_lastBasic!);
-    }
-  }
-
   void _emit(BatteryData data) {
     if (!_dataController.isClosed) _dataController.add(data);
-  }
-
-  ({List<int> basic, List<int> cells, String name}) _activeCommandProfile() {
-    switch (_commandProfileIndex % 2) {
-      case 1:
-        return (
-          basic: _cmdBasicInfoAltEndian,
-          cells: _cmdCellVoltagesAltEndian,
-          name: 'JBD-alt-endian',
-        );
-      default:
-        return (
-          basic: _cmdBasicInfo,
-          cells: _cmdCellVoltages,
-          name: 'JBD-classic',
-        );
-    }
   }
 
   String _nextLionAsciiCommand() {
@@ -1124,135 +894,63 @@ class BmsService {
   Future<void> _poll() async {
     if (_writeChar == null) return;
     try {
-      if (!_hasValidFrame) {
-        _pollAttemptsWithoutValidFrame++;
-      }
-
-      if (!_hasValidFrame && !_useLionCommandSet && _pollAttemptsWithoutValidFrame >= _maxJbdProbePolls) {
-        _switchToLion(
-          'after $_pollAttemptsWithoutValidFrame JBD probe polls, echoCount=$_echoFrameCount',
-        );
-      }
-
-      // Keep Lion mode running even when no frame is decoded yet.
-      // SmartBat devices can be notify-driven and may need longer observation windows.
-      if (!_hasValidFrame && !_useLionCommandSet && _pollAttemptsWithoutValidFrame >= _maxTotalProbePolls) {
-        if (!_reportedProtocolFailure) {
-          _reportedProtocolFailure = true;
-          _setStatus('Error: unsupported BMS protocol (only echo responses)');
-          _log(
-            'Protocol probe failed after $_pollAttemptsWithoutValidFrame polls '
-            '(lionMode=$_useLionCommandSet, echoCount=$_echoFrameCount)',
-          );
-        }
+      if (_lionAutoDiscoverTransition) {
         return;
       }
 
-      if (_useLionCommandSet) {
-        if (_lionAutoDiscoverTransition) {
-          return;
-        }
-
-        // ── Gateway mode: overrides single/auto-discover ──────────────────
-        if (_gatewayMode && _gwPerms != null && !_gwDone) {
-          final perm = _gwPerms![_gwIndex];
-          _preferWriteWithoutResponse = !perm.withResponse;
-          final payload = ascii.encode(perm.command);
-          final preferred = _lionPreferredWrite();
-          _log(
-            'TX Lion ASCII ${perm.command} (${payload.length}b) '
-            'phase=gateway[$_gwIndex/${_gwPerms!.length - 1}]'
-            ' ${perm.charId}/${perm.withResponse ? "REQ" : "CMD"}',
-          );
-          try {
-            await _writeOnCandidates(payload, preferred: preferred, gatewayOnly: true);
-            _gwCurrentResult!.writesOk++;
-          } catch (_) {
-            _gwCurrentResult!.writesErr++;
-          }
-          _gwWriteCount++;
-          if (_gwWriteCount >= _gwWritesPerPerm) _gwMaybeAdvance();
-          return;
-        }
-
-        _lionPollCount++;
-        if (_lionBurstPollsRemaining > 0) {
-          _lionBurstPollsRemaining--;
-          if (_lionBurstPollsRemaining == 0 && _pollInterval != _lionSteadyPollInterval) {
-            _restartPollTimer(_lionSteadyPollInterval);
-            _log('Lion scheduler switched to steady cadence (5 writes/sec)');
-          }
-        }
-
-        final asciiCommand = _nextLionAsciiCommand();
-        final rawBytes = ascii.encode(asciiCommand);
-        // XOR-encode: LionCheck applies byte ^ resouce before writeCharacteristic.
-        // Key 0x19 derived from device name 'SmartBat-A19681' via EncryptUtils.java.
-        final payload = Uint8List.fromList(rawBytes.map((b) => b ^ _lionXorKey).toList());
+      // ── Gateway mode: overrides single/auto-discover ──────────────────
+      if (_gatewayMode && _gwPerms != null && !_gwDone) {
+        final perm = _gwPerms![_gwIndex];
+        _preferWriteWithoutResponse = !perm.withResponse;
+        final payload = ascii.encode(perm.command);
         final preferred = _lionPreferredWrite();
-        final lionPhase = _lionSingleCommandMode
-          ? 'single-command'
-          : _lionFixedReplayMode
-            ? 'fixed-replay'
-            : (_lionBootstrapIndex < _lionBootstrapCommands.length ? 'bootstrap' : 'steady');
         _log(
-          'TX Lion ASCII $asciiCommand (${payload.length}b) '
-          'phase=$lionPhase [XOR 0x${_lionXorKey.toRadixString(16).padLeft(2, '0').toUpperCase()}]',
+          'TX Lion ASCII ${perm.command} (${payload.length}b) '
+          'phase=gateway[$_gwIndex/${_gwPerms!.length - 1}]'
+          ' ${perm.charId}/${perm.withResponse ? "REQ" : "CMD"}',
         );
-        await _writeOnCandidates(payload, preferred: preferred);
-
-        if (_lionCellVoltagesMv.isEmpty &&
-            _lionPollCount % _lionAltCellProbeEveryPolls == 0) {
-          final probeCommand = _lionAltCellProbeCommands[
-              _lionAltCellProbeIndex % _lionAltCellProbeCommands.length];
-          _lionAltCellProbeIndex =
-              (_lionAltCellProbeIndex + 1) % _lionAltCellProbeCommands.length;
-          final probeRaw = ascii.encode(probeCommand);
-          final probePayload = Uint8List.fromList(
-            probeRaw.map((b) => b ^ _lionXorKey).toList(),
-          );
-          _log(
-            'TX Lion ALT probe $probeCommand (${probePayload.length}b) '
-            '[XOR 0x${_lionXorKey.toRadixString(16).padLeft(2, '0').toUpperCase()}]',
-          );
-          await _writeOnCandidates(probePayload, preferred: preferred);
+        try {
+          await _writeOnCandidates(payload, preferred: preferred, gatewayOnly: true);
+          _gwCurrentResult!.writesOk++;
+        } catch (_) {
+          _gwCurrentResult!.writesErr++;
         }
-
-        _maybeAutoDiscoverRotate();
-
-        // The original app is notify-driven; keep reads as sparse fallback probes.
-        if (!_hasValidFrame && _lionPollCount % 20 == 0) {
-          await _readFromCandidates();
-        }
+        _gwWriteCount++;
+        if (_gwWriteCount >= _gwWritesPerPerm) _gwMaybeAdvance();
         return;
       }
 
-      if (!_hasValidFrame) {
-        _commandProfileIndex = (_commandProfileIndex + 1) % 2;
-        _preferWriteWithoutResponse = !_preferWriteWithoutResponse;
-      }
-      final profile = _activeCommandProfile();
-      if (!_hasValidFrame && _lastAnnouncedProfileIndex != _commandProfileIndex) {
-        _lastAnnouncedProfileIndex = _commandProfileIndex;
-        _log('Trying protocol profile: ${profile.name}');
-      }
-      if (!_hasValidFrame) {
-        _log('Trying write mode: ${_preferWriteWithoutResponse ? 'without-response-first' : 'with-response-first'}');
+      _lionPollCount++;
+      if (_lionBurstPollsRemaining > 0) {
+        _lionBurstPollsRemaining--;
+        if (_lionBurstPollsRemaining == 0 && _pollInterval != _lionSteadyPollInterval) {
+          _restartPollTimer(_lionSteadyPollInterval);
+          _log('Lion scheduler switched to steady cadence (5 writes/sec)');
+        }
       }
 
-      // Until we decode at least one valid frame, rotate write candidates.
-      // Some BMS firmwares accept writes on multiple chars but respond on only one.
-      BluetoothCharacteristic? preferred;
-      if (_writeCandidates.isNotEmpty && !_hasValidFrame) {
-        preferred = _writeCandidates[_writeCandidateIndex % _writeCandidates.length];
-        _writeCandidateIndex = (_writeCandidateIndex + 1) % _writeCandidates.length;
-      }
+      final asciiCommand = _nextLionAsciiCommand();
+      final rawBytes = ascii.encode(asciiCommand);
+      // XOR-encode: LionCheck applies byte ^ key before writeCharacteristic.
+      final payload = Uint8List.fromList(rawBytes.map((b) => b ^ _lionXorKey).toList());
+      final preferred = _lionPreferredWrite();
+      final lionPhase = _lionSingleCommandMode
+        ? 'single-command'
+        : _lionFixedReplayMode
+          ? 'fixed-replay'
+          : (_lionBootstrapIndex < _lionBootstrapCommands.length ? 'bootstrap' : 'steady');
+      _log(
+        'TX Lion ASCII $asciiCommand (${payload.length}b) '
+        'phase=$lionPhase [XOR 0x${_lionXorKey.toRadixString(16).padLeft(2, '0').toUpperCase()}]',
+      );
+      await _writeOnCandidates(payload, preferred: preferred);
 
-      final usedForBasic = await _writeOnCandidates(profile.basic, preferred: preferred);
-      await _readFromCandidates();
-      await Future.delayed(const Duration(milliseconds: 300));
-      await _writeOnCandidates(profile.cells, preferred: usedForBasic);
-      await _readFromCandidates();
+      _maybeAutoDiscoverRotate();
+
+      // The original app is notify-driven; keep reads as sparse fallback probes.
+      if (!_hasValidFrame && _lionPollCount % 20 == 0) {
+        await _readFromCandidates();
+      }
     } catch (_) {
       // Silently ignore poll errors (device may be temporarily busy)
       _log('Polling failed');
@@ -1356,22 +1054,6 @@ class BmsService {
     throw Exception('No writable characteristic accepted payload');
   }
 
-  bool _hasValidChecksum(List<int> frame) {
-    if (frame.length < 7) return false;
-    final expected = ((frame[frame.length - 3] & 0xFF) << 8) | (frame[frame.length - 2] & 0xFF);
-    int sum = 0;
-    for (int i = 1; i < frame.length - 3; i++) {
-      sum = (sum + frame[i]) & 0xFFFF;
-    }
-    final actual = (0x10000 - sum) & 0xFFFF;
-    return expected == actual;
-  }
-
-  bool _looksLikeEchoFrame(List<int> frame) {
-    if (frame.length != 7) return false;
-    return frame[0] == 0xDD && frame[1] == 0xA5 && frame[3] == 0x00 && frame[6] == 0x77;
-  }
-
   bool _listEquals(List<int> a, List<int> b) {
     if (a.length != b.length) return false;
     for (int i = 0; i < a.length; i++) {
@@ -1418,12 +1100,6 @@ class BmsService {
     }
   }
 
-  int _u16(List<int> d, int i) => ((d[i] & 0xFF) << 8) | (d[i + 1] & 0xFF);
-  int _s16(List<int> d, int i) {
-    final v = _u16(d, i);
-    return v >= 0x8000 ? v - 0x10000 : v;
-  }
-
   Future<void> disconnect({bool keepGateway = false}) async {
     _setStatus('Disconnecting');
     _pollTimer?.cancel();
@@ -1438,11 +1114,8 @@ class BmsService {
     _writeChar = _notifyChar = _device = _lastBasic = null;
     _altWriteChar = null;
     _altNotifyChar = null;
-    _writeCandidateIndex = 0;
     _hasValidFrame = false;
     _echoFrameCount = 0;
-    _commandProfileIndex = 0;
-    _lastAnnouncedProfileIndex = -1;
     _preferWriteWithoutResponse = true;
     _useLionCommandSet = false;
     _smartBatNativeSeen = false;
@@ -1458,10 +1131,7 @@ class BmsService {
     _lionPollCount = 0;
     _lionBurstPollsRemaining = 0;
     _lionCellVoltagesMv.clear();
-    _lionAltCellProbeIndex = 0;
     _lastTxPayload = null;
-    _pollAttemptsWithoutValidFrame = 0;
-    _reportedProtocolFailure = false;
     _logRxSummary(force: true);
     _rxTotalFrames = 0;
     _rxEchoFrames = 0;

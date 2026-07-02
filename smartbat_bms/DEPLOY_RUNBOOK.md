@@ -7,7 +7,7 @@ This is the standard repeatable workflow for test deployments.
 - Phone connected via USB and visible in ADB.
 - Target package name: `com.smartbat.bms`.
 - Project root for build: `smartbat_bms`.
-- Current app version: `1.3.3`.
+- Current app version: `1.3.4`.
 
 ## Standard flow
 
