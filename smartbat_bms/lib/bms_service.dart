@@ -5,9 +5,15 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'battery_data.dart';
 
 class BmsService {
-  static const String _svcUuid  = "0000fff0-0000-1000-8000-00805f9b34fb";
-  static const String _fff1Uuid = "0000fff1-0000-1000-8000-00805f9b34fb";
-  static const String _fff2Uuid = "0000fff2-0000-1000-8000-00805f9b34fb";
+  static const String _svcUuid = "0000fff0-0000-1000-8000-00805f9b34fb";
+  static const String _writeUuid = "0000fff6-0000-1000-8000-00805f9b34fb";
+  static const String _notifyUuid = "0000fff4-0000-1000-8000-00805f9b34fb";
+  static const String _echoNotifyUuid = "0000fff6-0000-1000-8000-00805f9b34fb";
+  static const List<String> _initReadUuids = [
+    "0000fff4-0000-1000-8000-00805f9b34fb",
+    "0000fff5-0000-1000-8000-00805f9b34fb",
+    "0000fff6-0000-1000-8000-00805f9b34fb",
+  ];
 
   // Captured from LionCheck app session: 8-byte ASCII command frames.
   // Phase 1 (bootstrap): broad register sweep once after connect.
@@ -47,72 +53,18 @@ class BmsService {
     '+RAA4802',
   ];
 
-  // Deterministic replay mode for protocol comparison runs.
-  // Keeps command order fixed across runs to make raw-byte diffs reliable.
-  static const bool _lionFixedReplayMode = false; // disabled: using XOR-encoded writes
-  static const bool _lionSingleCommandMode = false; // disabled: using full auto-discover
-  static const String _lionSingleCommand = '+RAA0A03';
-  static const bool _lionAutoDiscoverMode = true;
-  static const Duration _lionAutoDiscoverHold = Duration(seconds: 15);
-  // Full bootstrap sweep – all 12 known commands, one per hold period.
-  static const List<String> _lionAutoDiscoverCommands = [
-    '+RAA1002',
-    '+RAA0A03',
-    '+RAA0802',
-    '+RAA0C02',
-    '+RAA0403',
-    '+RAA3C03',
-    '+RAA0603',
-    '+RAA1802',
-    '+RAA1A02',
-    '+RAA2802',
-    '+RAA4802',
-    '+RAA0202',
-  ];
-  static const List<String> _lionFixedReplayCycle = [
-    '+RAA1002',
-    '+RAA0A03',
-    '+RAA0802',
-    '+RAA0C02',
-    '+RAA0403',
-    '+RAA3C03',
-    '+RAA0603',
-    '+RAA1802',
-    '+RAA1A02',
-    '+RAA2802',
-    '+RAA4802',
-    '+RAA0202',
-    '+RAA0202',
-    '+RAA0A03',
-    '+RAA0802',
-    '+RAA2C02',
-    '+RAA1002',
-  ];
-
   BluetoothDevice? _device;
   BluetoothCharacteristic? _writeChar;
   BluetoothCharacteristic? _notifyChar;
-  BluetoothCharacteristic? _altWriteChar;
   BluetoothCharacteristic? _altNotifyChar;
-  final List<BluetoothCharacteristic> _writeCandidates = [];
-  final List<BluetoothCharacteristic> _notifyCandidates = [];
-  final List<BluetoothCharacteristic> _readCandidates = [];
+  final Map<String, BluetoothCharacteristic> _charsByShortUuid = {};
   bool _hasValidFrame = false;
   int _echoFrameCount = 0;
-  bool _preferWriteWithoutResponse = true;
   bool _useLionCommandSet = false;
-  bool _smartBatNativeSeen = false;
   int _lionBootstrapIndex = 0;
   int _lionSteadyIndex = 0;
   int _lionExtendedSweepIndex = -1;
   int _lionSteadyLoopCount = 0;
-  int _lionFixedReplayIndex = 0;
-  String _activeLionSingleCommand = _lionSingleCommand;
-  int _lionAutoDiscoverIndex = 0;
-  DateTime? _lionAutoDiscoverStartedAt;
-  bool _lionAutoDiscoverTransition = false;
-  bool _lionAutoDiscoverDoneLogged = false;
-  int _lionPollCount = 0;
   int _lionBurstPollsRemaining = 0;
   List<int>? _lastTxPayload;
   int _rxTotalFrames = 0;
@@ -123,21 +75,18 @@ class BmsService {
   int _rxAsciiFrames = 0;
 
   // ── Lion data accumulation (populated from +RD,XX responses) ─────────────
-  int? _lionSoc;          // State of charge (%)
-  int? _lionVoltageMv;    // Pack voltage (mV)
-  int? _lionCurrentRaw;   // Current raw (signed 16-bit, before ×ratio)
-  int? _lionTempRaw;      // Temperature raw (K×10, e.g. 2990 = 25.9 °C)
-  int  _lionRatio = 0;    // Ratio multiplier (from +RD,0A or embedded in +RD,04)
-  int? _lionRmcRaw;       // Remaining capacity raw (×ratio = mAh)
-  int? _lionFccRaw;       // Full charge capacity raw (×ratio = mAh)
-  int? _lionCycles;       // Cycle count
-  int? _lionAtte;         // Time to empty (minutes)
-  int? _lionAttf;         // Time to full (minutes)
+  int? _lionSoc; // State of charge (%)
+  int? _lionVoltageMv; // Pack voltage (mV)
+  int? _lionCurrentRaw; // Current raw (signed 16-bit, before ×ratio)
+  int? _lionTempRaw; // Temperature raw (K×10, e.g. 2990 = 25.9 °C)
+  int _lionRatio = 0; // Ratio multiplier (from +RD,0A or embedded in +RD,04)
+  int? _lionRmcRaw; // Remaining capacity raw (×ratio = mAh)
+  int? _lionFccRaw; // Full charge capacity raw (×ratio = mAh)
+  int? _lionCycles; // Cycle count
+  int? _lionAtte; // Time to empty (minutes)
+  int? _lionAttf; // Time to full (minutes)
   final Map<int, int> _lionCellVoltagesMv = {};
 
-  // ── Gateway autonomous test matrix ──────────────────────────────────────────
-  // Iterates ALL (command × characteristic × writeMode) permutations, logs each
-  // result as GATEWAY_RESULT: {...} for PC-side analysis via gateway_monitor.ps1.
   // ── XOR encoding: derived from EncryptUtils.java in LionCheck APK ──────────
   // Key = sum of encryptByte[nibble] for each nibble of hex(numeric suffix) + offset
   // Device name format: [A|B]<decimal_id>  e.g. "SmartBat-A19681"
@@ -145,7 +94,24 @@ class BmsService {
   // For SmartBat-A19681: hex(19681)='4CE1', nibbles [4,12,14,1]
   //   sum = encryptByte[4..] = 1+5+9+5 = 20, key = 20+5 = 25 = 0x19
   // Fallback: 0x19 (SmartBat-A type default)
-  static const List<int> _encryptByteTable = [2,5,4,3,1,4,1,6,8,3,7,2,5,8,9,3];
+  static const List<int> _encryptByteTable = [
+    2,
+    5,
+    4,
+    3,
+    1,
+    4,
+    1,
+    6,
+    8,
+    3,
+    7,
+    2,
+    5,
+    8,
+    9,
+    3
+  ];
 
   /// Computes the XOR key from the BLE device name using the LionCheck algorithm.
   /// Returns 0x19 as fallback for unrecognised name formats.
@@ -169,22 +135,15 @@ class BmsService {
 
   // Instance XOR key — set during connect() from the device name.
   int _lionXorKey = 0x19;
-  String _overrideName = ''; // set before connect() for auto-reconnect with no platformName
+  String _overrideName =
+      ''; // set before connect() for auto-reconnect with no platformName
 
   /// Call before connect() when restoring from saved state (platformName may be empty).
   void overrideDeviceName(String name) => _overrideName = name;
 
-  static const bool _gatewayMode = false; // Disabled: protocol cracked via JADX
-  static const int _gwWritesPerPerm = 100; // ~6 s at 60 ms burst
-  List<_GwPerm>? _gwPerms;
-  int _gwIndex = 0;
-  int _gwWriteCount = 0;
-  bool _gwDone = false;
-  _GwResult? _gwCurrentResult;
-
   static const int _lionFastBurstPolls = 180;
   static const int _rxSummaryEvery = 40;
-  static const Duration _lionFastPollInterval   = Duration(milliseconds: 60);
+  static const Duration _lionFastPollInterval = Duration(milliseconds: 60);
   static const Duration _lionSteadyPollInterval = Duration(milliseconds: 100);
 
   final _dataController = StreamController<BatteryData>.broadcast();
@@ -213,10 +172,13 @@ class BmsService {
     // Prefer override (auto-reconnect) → platformName → advName.
     final name = _overrideName.isNotEmpty
         ? _overrideName
-        : (device.platformName.isNotEmpty ? device.platformName : device.advName);
+        : (device.platformName.isNotEmpty
+            ? device.platformName
+            : device.advName);
     _lionXorKey = calcLionXorKey(name);
     _setStatus('Connecting');
-    _log('Connecting to $name  [XOR key=0x${_lionXorKey.toRadixString(16).padLeft(2, '0').toUpperCase()}]');
+    _log(
+        'Connecting to $name  [XOR key=0x${_lionXorKey.toRadixString(16).padLeft(2, '0').toUpperCase()}]');
     try {
       await device.connect(autoConnect: false);
     } catch (e) {
@@ -233,202 +195,47 @@ class BmsService {
     final services = await device.discoverServices();
     _log('Discovered ${services.length} services');
     BluetoothService? svc;
-    final allChars = <BluetoothCharacteristic>[];
     for (final s in services) {
-      _log('Service ${s.serviceUuid} with ${s.characteristics.length} characteristics');
-      allChars.addAll(s.characteristics);
+      _log(
+          'Service ${s.serviceUuid} with ${s.characteristics.length} characteristics');
       if (_uuidMatches(s.serviceUuid.toString(), _svcUuid)) {
         svc = s;
         break;
       }
     }
 
-    // Fallback: some devices do not expose/format FFF0 consistently,
-    // but still provide the expected FFF1/FFF2 characteristics.
     if (svc == null) {
-      for (final s in services) {
-        final hasFff1 = s.characteristics.any(
-          (c) => _uuidMatches(c.characteristicUuid.toString(), _fff1Uuid),
-        );
-        final hasFff2 = s.characteristics.any(
-          (c) => _uuidMatches(c.characteristicUuid.toString(), _fff2Uuid),
-        );
-        if (hasFff1 || hasFff2) {
-          svc = s;
-          _log('Using fallback service ${s.serviceUuid} (contains FFF1/FFF2)');
-          break;
-        }
-      }
+      _setStatus('BMS service not found');
+      throw Exception('BMS service FFF0 not found');
     }
 
-    if (svc == null) {
-      _log('BMS service FFF0 not found, falling back to global characteristic discovery');
-    }
-
-    BluetoothCharacteristic? c1, c2;
-    final selectedChars = <BluetoothCharacteristic>[];
-    if (svc != null) {
-      selectedChars.addAll(svc.characteristics);
-      for (final c in svc.characteristics) {
-        final id = c.characteristicUuid.toString().toLowerCase();
-        _log(
-          'Characteristic ${c.characteristicUuid} '
-          'R:${c.properties.read} '
-          'W:${c.properties.write} '
-          'WNR:${c.properties.writeWithoutResponse} '
-          'N:${c.properties.notify}',
-        );
-        if (_uuidMatches(id, _fff1Uuid)) c1 = c;
-        if (_uuidMatches(id, _fff2Uuid)) c2 = c;
-      }
-    }
-
-    // Some firmwares expose FFF1/FFF2 in another service.
-    // If one or both are missing, search globally across discovered services.
-    if (c1 == null || c2 == null) {
-      for (final s in services) {
-        for (final c in s.characteristics) {
-          final id = c.characteristicUuid.toString().toLowerCase();
-          if (c1 == null && _uuidMatches(id, _fff1Uuid)) {
-            c1 = c;
-            _log('Found fallback FFF1 in service ${s.serviceUuid}');
-          }
-          if (c2 == null && _uuidMatches(id, _fff2Uuid)) {
-            c2 = c;
-            _log('Found fallback FFF2 in service ${s.serviceUuid}');
-          }
-        }
-      }
-    }
-
-    // Last resort: choose likely vendor write/notify pair from one service.
-    if (c1 == null || c2 == null) {
-      for (final s in services) {
-        final vendorish = s.characteristics.where((c) {
-          final short = _shortUuid(c.characteristicUuid.toString());
-          return short.startsWith('ff') || short.startsWith('f');
-        }).toList();
-        if (vendorish.isEmpty) continue;
-
-        final writable = vendorish.where(
-          (c) => c.properties.write || c.properties.writeWithoutResponse,
-        );
-        final notifiable = vendorish.where((c) => c.properties.notify);
-
-        if ((c1 == null || c2 == null) && writable.isNotEmpty && notifiable.isNotEmpty) {
-          c1 ??= writable.first;
-          c2 ??= notifiable.first;
-          _log(
-            'Using heuristic vendor chars from ${s.serviceUuid}: '
-            'write=${c1.characteristicUuid}, notify=${c2.characteristicUuid}',
-          );
-          break;
-        }
-      }
-    }
-
-    // Final fallback: pick any write + notify pair from discovered characteristics.
-    if (c1 == null || c2 == null) {
-      final writable = allChars.where(
-        (c) => c.properties.write || c.properties.writeWithoutResponse,
-      ).toList();
-      final notifiable = allChars.where((c) => c.properties.notify).toList();
-
-      if (writable.isNotEmpty && notifiable.isNotEmpty) {
-        c1 ??= writable.first;
-        c2 ??= notifiable.first;
-        _log(
-          'Using generic fallback chars: '
-          'write=${c1.characteristicUuid}, notify=${c2.characteristicUuid}',
-        );
-      }
-    }
-
-    if (selectedChars.isEmpty) {
-      selectedChars.addAll(allChars);
-    }
-
-    _writeCandidates
-      ..clear()
-      ..addAll(
-        selectedChars.where(
-          (c) => c.properties.write || c.properties.writeWithoutResponse,
-        ),
+    _charsByShortUuid.clear();
+    for (final c in svc.characteristics) {
+      final short = _shortUuid(c.characteristicUuid.toString());
+      _charsByShortUuid[short] = c;
+      _log(
+        'Characteristic ${c.characteristicUuid} '
+        'R:${c.properties.read} '
+        'W:${c.properties.write} '
+        'WNR:${c.properties.writeWithoutResponse} '
+        'N:${c.properties.notify}',
       );
-
-    _notifyCandidates
-      ..clear()
-      ..addAll(selectedChars.where((c) => c.properties.notify));
-
-    _readCandidates
-      ..clear()
-      ..addAll(selectedChars.where((c) => c.properties.read));
-
-    int writePriority(BluetoothCharacteristic c) {
-      final short = _shortUuid(c.characteristicUuid.toString());
-      if (short == 'fff3') return 100;
-      if (short == 'fff6') return 90;
-      if (short == 'fff4') return 80;
-      if (short == 'fff1') return 70;
-      return 10;
     }
 
-    int notifyPriority(BluetoothCharacteristic c) {
-      final short = _shortUuid(c.characteristicUuid.toString());
-      if (short == 'fff4') return 100;
-      if (short == 'fff6') return 90;
-      if (short == 'fff2') return 80;
-      if (short == 'fff1') return 70;
-      return 10;
-    }
-
-    _writeCandidates.sort((a, b) => writePriority(b).compareTo(writePriority(a)));
-    _notifyCandidates.sort((a, b) => notifyPriority(b).compareTo(notifyPriority(a)));
-
-    // fff3 = 1-byte ATT max (excluded from 8-byte commands but kept for completeness).
-    // fff1 = candidate TX channel (withResponse). fff4/fff6 = echo/loopback.
-    // Gateway mode needs all of fff1/fff4/fff6; fff3 stays for fallback logging.
-    final preferredWrites = _writeCandidates
-        .where((c) {
-          final short = _shortUuid(c.characteristicUuid.toString());
-          return short == 'fff1' || short == 'fff3' || short == 'fff6' || short == 'fff4';
-        })
-        .toList();
-    if (preferredWrites.isNotEmpty) {
-      _writeCandidates
-        ..clear()
-        ..addAll(preferredWrites);
-    }
-
-    _writeChar = _writeCandidates.isNotEmpty ? _writeCandidates.first : _writeChar;
-    _altWriteChar = _writeCandidates.length > 1 ? _writeCandidates[1] : _altWriteChar;
-    _notifyChar = _notifyCandidates.isNotEmpty ? _notifyCandidates.first : _notifyChar;
-    _altNotifyChar = _notifyCandidates.length > 1 ? _notifyCandidates[1] : _altNotifyChar;
-
-    _log(
-      'Write candidates: ${_writeCandidates.map((c) => c.characteristicUuid).join(', ')}',
-    );
-    _log(
-      'Notify candidates: ${_notifyCandidates.map((c) => c.characteristicUuid).join(', ')}',
-    );
-    _log(
-      'Read candidates: ${_readCandidates.map((c) => c.characteristicUuid).join(', ')}',
-    );
-
-    // Keep candidate-based selection; do not override with legacy FFF1/FFF2-only logic.
-
-    _log(
-      'Selected chars: write=${_writeChar?.characteristicUuid}, '
-      'notify=${_notifyChar?.characteristicUuid}, '
-      'altWrite=${_altWriteChar?.characteristicUuid}',
-    );
+    _writeChar = _charsByShortUuid[_shortUuid(_writeUuid)];
+    _notifyChar = _charsByShortUuid[_shortUuid(_notifyUuid)];
+    _altNotifyChar = _charsByShortUuid[_shortUuid(_echoNotifyUuid)];
 
     if (_writeChar == null || _notifyChar == null) {
       _setStatus('Missing BMS characteristics');
       throw Exception('Required BMS characteristics not found');
     }
 
-    _altNotifyChar ??= (_notifyCandidates.isNotEmpty ? _notifyCandidates.first : null);
+    if (!(_writeChar!.properties.writeWithoutResponse ||
+        _writeChar!.properties.write)) {
+      _setStatus('BMS write characteristic unavailable');
+      throw Exception('FFF6 is not writable');
+    }
 
     Future<void> enableNotify(BluetoothCharacteristic? c) async {
       if (c == null || !c.properties.notify) return;
@@ -438,22 +245,18 @@ class BmsService {
     }
 
     await enableNotify(_notifyChar);
-    await enableNotify(_altNotifyChar);
-    for (final c in _notifyCandidates) {
-      if (c != _notifyChar && c != _altNotifyChar) {
-        await enableNotify(c);
-      }
+    if (_altNotifyChar != _notifyChar) {
+      await enableNotify(_altNotifyChar);
     }
 
-    // Read all readable characteristics immediately to discover data channels.
-    // fff2/fff5 are read-only and may contain battery data without any write trigger.
-    for (final c in _readCandidates) {
+    for (final uuid in _initReadUuids) {
+      final c = _charsByShortUuid[_shortUuid(uuid)];
+      if (c == null || !c.properties.read) continue;
       final short = _shortUuid(c.characteristicUuid.toString());
       try {
         final v = await c.read();
         _log('INIT READ $short (${v.length}b): ${_hex(v)}');
-        // Feed fff4/fff5 data into the parser immediately
-        if (short == 'fff4' || short == 'fff5') _onData(v);
+        if (v.isNotEmpty) _onData(v);
       } catch (e) {
         _log('INIT READ $short failed: $e');
       }
@@ -478,7 +281,6 @@ class BmsService {
       _echoFrameCount++;
       _rxEchoFrames++;
       _rxTotalFrames++;
-      _gwCurrentResult?.echoes++;
       _log('Ignoring command echo: ${_hex(chunk)}');
       if (!_hasValidFrame && _echoFrameCount == 12) {
         _setStatus('Connected - echo only (protocol mismatch?)');
@@ -512,7 +314,8 @@ class BmsService {
   }
 
   void _logRxSummary({bool force = false}) {
-    if (!force && (_rxTotalFrames == 0 || _rxTotalFrames % _rxSummaryEvery != 0)) {
+    if (!force &&
+        (_rxTotalFrames == 0 || _rxTotalFrames % _rxSummaryEvery != 0)) {
       return;
     }
     _log(
@@ -530,8 +333,6 @@ class BmsService {
   /// 16-bit LE value = parseInt(str[8:10]+str[6:8], 16)
   void _parseLionLine(List<int> lineBytes) {
     _rxTotalFrames++;
-    _smartBatNativeSeen = true;
-
     final str = String.fromCharCodes(lineBytes);
     _log('Lion line: $str');
 
@@ -539,7 +340,8 @@ class BmsService {
       // May be an ERR response or garbage — ignore silently unless debug needed.
       if (!str.toUpperCase().contains('ERR')) {
         _rxUnknownFrames++;
-        _log('Lion: unrecognised line (${lineBytes.length}b): ${_hex(lineBytes)}');
+        _log(
+            'Lion: unrecognised line (${lineBytes.length}b): ${_hex(lineBytes)}');
       }
       return;
     }
@@ -549,6 +351,7 @@ class BmsService {
       if (str.length < 10) return 0;
       return int.parse(str.substring(8, 10) + str.substring(6, 8), radix: 16);
     }
+
     int byte1() => int.parse(str.substring(6, 8), radix: 16);
     int byte3() =>
         str.length >= 12 ? int.parse(str.substring(10, 12), radix: 16) : 0;
@@ -633,9 +436,7 @@ class BmsService {
         ? (_lionCurrentRaw! * _lionRatio) / 1000.0
         : 0.0;
 
-    final tempC = _lionTempRaw != null
-        ? (_lionTempRaw! - 2731) / 10.0
-        : 25.0;
+    final tempC = _lionTempRaw != null ? (_lionTempRaw! - 2731) / 10.0 : 25.0;
 
     // capacity = (raw × ratio) mAh → / 1000 = Ah
     final remainAh = (_lionRmcRaw != null && _lionRatio != 0)
@@ -647,20 +448,24 @@ class BmsService {
     final cellVoltages = _currentLionCellVoltages();
 
     _lastBasic = BatteryData(
-      voltage:          voltage,
-      current:          current,
-      remainingAh:      remainAh,
-      nominalAh:        nominalAh,
-      cycles:           _lionCycles ?? (_lastBasic?.cycles ?? 0),
-      soc:              _lionSoc!.clamp(0, 100),
-      temperatures:     [tempC],
-      cellVoltages:     cellVoltages.isNotEmpty ? cellVoltages : (_lastBasic?.cellVoltages ?? []),
-      cellCount:        cellVoltages.isNotEmpty ? cellVoltages.length : (_lastBasic?.cellCount ?? 0),
-      chargeFet:        true,
-      dischargeFet:     true,
+      voltage: voltage,
+      current: current,
+      remainingAh: remainAh,
+      nominalAh: nominalAh,
+      cycles: _lionCycles ?? (_lastBasic?.cycles ?? 0),
+      soc: _lionSoc!.clamp(0, 100),
+      temperatures: [tempC],
+      cellVoltages: cellVoltages.isNotEmpty
+          ? cellVoltages
+          : (_lastBasic?.cellVoltages ?? []),
+      cellCount: cellVoltages.isNotEmpty
+          ? cellVoltages.length
+          : (_lastBasic?.cellCount ?? 0),
+      chargeFet: true,
+      dischargeFet: true,
       protectionStatus: 0,
-      atteMin:          _lionAtte,
-      attfMin:          _lionAttf,
+      atteMin: _lionAtte,
+      attfMin: _lionAttf,
     );
     _log(
       'Emit: ${voltage.toStringAsFixed(3)} V  '
@@ -683,16 +488,6 @@ class BmsService {
   }
 
   String _nextLionAsciiCommand() {
-    if (_lionSingleCommandMode) {
-      return _activeLionSingleCommand;
-    }
-
-    if (_lionFixedReplayMode) {
-      final cmd = _lionFixedReplayCycle[_lionFixedReplayIndex % _lionFixedReplayCycle.length];
-      _lionFixedReplayIndex = (_lionFixedReplayIndex + 1) % _lionFixedReplayCycle.length;
-      return cmd;
-    }
-
     if (_lionBootstrapIndex < _lionBootstrapCommands.length) {
       final cmd = _lionBootstrapCommands[_lionBootstrapIndex++];
       return cmd;
@@ -706,7 +501,8 @@ class BmsService {
       return cmd;
     }
 
-    final cmd = _lionSteadyCommands[_lionSteadyIndex % _lionSteadyCommands.length];
+    final cmd =
+        _lionSteadyCommands[_lionSteadyIndex % _lionSteadyCommands.length];
     _lionSteadyIndex = (_lionSteadyIndex + 1) % _lionSteadyCommands.length;
 
     // Every 8 steady loops, run one extended sweep before returning to steady core.
@@ -728,25 +524,7 @@ class BmsService {
     return true;
   }
 
-  BluetoothCharacteristic? _lionPreferredWrite() {
-    // Gateway mode: use exactly the characteristic from the current permutation.
-    if (_gatewayMode && _gwPerms != null && !_gwDone) {
-      final targetId = _gwPerms![_gwIndex].charId;
-      for (final c in _writeCandidates) {
-        if (_shortUuid(c.characteristicUuid.toString()) == targetId) return c;
-      }
-      // Permutation's char not in writeCandidates — fall through to default.
-    }
-    // Protocol confirmed via JADX: LionCheck writes to fff6 (CHA_UUID2) only.
-    // fff4 is notify-only (CHA_UUID1). fff1/fff3 reject 8-byte payloads.
-    for (final c in _writeCandidates) {
-      if (_shortUuid(c.characteristicUuid.toString()) == 'fff6') return c;
-    }
-    for (final c in _writeCandidates) {
-      if (_shortUuid(c.characteristicUuid.toString()) == 'fff4') return c;
-    }
-    return _writeChar;
-  }
+  BluetoothCharacteristic? _lionPreferredWrite() => _writeChar;
 
   Future<void> requestSnapshot() async {
     await _poll();
@@ -755,175 +533,19 @@ class BmsService {
   void _switchToLion(String reason) {
     if (_useLionCommandSet) return;
     _useLionCommandSet = true;
-    // Gateway: build the permutation list once; _gwIndex persists across reconnects.
-    // Ordered so char changes are minimal (only 2 reconnects total over full run).
-    if (_gatewayMode && _gwPerms == null) {
-      _gwPerms = [
-        for (final ch in ['fff1', 'fff4', 'fff6'])
-          for (final cmd in _lionBootstrapCommands)
-            for (final wr in [false, true])
-              _GwPerm(cmd, ch, withResponse: wr),
-      ];
-      _gwCurrentResult = _GwResult();
-      _gwDone = false;
-      _log(
-        'GATEWAY_INIT: ${_gwPerms!.length} permutations total, '
-        'resuming at index $_gwIndex',
-      );
-    }
-    if (_lionSingleCommandMode) {
-      if (_lionAutoDiscoverMode) {
-        if (_lionAutoDiscoverStartedAt == null) {
-          _lionAutoDiscoverIndex = 0;
-          _activeLionSingleCommand = _lionAutoDiscoverCommands.first;
-          _lionAutoDiscoverStartedAt = DateTime.now();
-        }
-      } else {
-        _activeLionSingleCommand = _lionSingleCommand;
-        _lionAutoDiscoverStartedAt = DateTime.now();
-      }
-      _lionAutoDiscoverDoneLogged = false;
-    }
-    _lionFixedReplayIndex = 0;
-    _lionPollCount = 0;
     _lionBurstPollsRemaining = _lionFastBurstPolls;
-    // LionCheck uses writeWithResponse (ATT_WRITE_REQ). Force the same mode.
-    _preferWriteWithoutResponse = false;
     _restartPollTimer(_lionFastPollInterval);
-    if (_lionSingleCommandMode) {
-      _setStatus('Trying Lion single command replay...');
-    } else if (_lionFixedReplayMode) {
-      _setStatus('Trying Lion fixed replay...');
-    } else {
-      _setStatus('Trying LionCheck command set...');
-    }
-    _log(
-      _lionSingleCommandMode
-          ? 'Switching to Lion single command replay ($_activeLionSingleCommand) ($reason)'
-          : _lionFixedReplayMode
-          ? 'Switching to Lion fixed replay command set ($reason)'
-          : 'Switching to LionCheck command set ($reason)',
-    );
-  }
-
-  void _maybeAutoDiscoverRotate() {
-    if (!_lionSingleCommandMode || !_lionAutoDiscoverMode) return;
-    if (_lionAutoDiscoverTransition) return;
-    final started = _lionAutoDiscoverStartedAt;
-    if (started == null) return;
-    if (DateTime.now().difference(started) < _lionAutoDiscoverHold) return;
-
-    final isLast = _lionAutoDiscoverIndex >= _lionAutoDiscoverCommands.length - 1;
-    if (isLast) {
-      if (!_lionAutoDiscoverDoneLogged) {
-        _lionAutoDiscoverDoneLogged = true;
-        _log('Auto-discover completed at command $_activeLionSingleCommand');
-      }
-      return;
-    }
-
-    final nextIndex = _lionAutoDiscoverIndex + 1;
-    final nextCommand = _lionAutoDiscoverCommands[nextIndex];
-    final device = _device;
-    if (device == null) return;
-
-    _lionAutoDiscoverTransition = true;
-    _log('Auto-discover rotate: $_activeLionSingleCommand -> $nextCommand (reconnect)');
-    unawaited(_rotateAutoDiscoverCommand(device, nextIndex, nextCommand));
-  }
-
-  Future<void> _rotateAutoDiscoverCommand(
-    BluetoothDevice device,
-    int nextIndex,
-    String nextCommand,
-  ) async {
-    try {
-      await disconnect(keepGateway: true);
-      _lionAutoDiscoverIndex = nextIndex;
-      _activeLionSingleCommand = nextCommand;
-      _lionAutoDiscoverStartedAt = DateTime.now();
-      await Future.delayed(const Duration(milliseconds: 500));
-      await connect(device);
-    } catch (e) {
-      _log('Auto-discover reconnect failed: $e');
-    } finally {
-      _lionAutoDiscoverTransition = false;
-    }
-  }
-
-  // ── Gateway helpers ──────────────────────────────────────────────────────────
-
-  void _gwMaybeAdvance() {
-    if (_gwPerms == null || _gwDone) return;
-    final result = _gwCurrentResult ?? _GwResult();
-    final perm = _gwPerms![_gwIndex];
-    _log(result.toLogLine(_gwIndex, perm));
-    _gwIndex++;
-    _gwWriteCount = 0;
-    if (_gwIndex >= _gwPerms!.length) {
-      _gwDone = true;
-      _setStatus('Gateway DONE – ${_gwPerms!.length} permutations complete');
-      _log('GATEWAY_MATRIX_DONE: all ${_gwPerms!.length} permutations complete');
-      return;
-    }
-    _gwCurrentResult = _GwResult();
-    final nextPerm = _gwPerms![_gwIndex];
-    _setStatus('Gateway: ${nextPerm.label} [$_gwIndex/${_gwPerms!.length}]');
-    _log('Gateway → permutation $_gwIndex: ${nextPerm.label}');
-    if (nextPerm.charId != perm.charId) {
-      final device = _device;
-      if (device != null) {
-        _lionAutoDiscoverTransition = true;
-        unawaited(_gwReconnect(device));
-      }
-    }
-  }
-
-  Future<void> _gwReconnect(BluetoothDevice device) async {
-    try {
-      await disconnect(keepGateway: true);
-      await Future.delayed(const Duration(milliseconds: 500));
-      await connect(device);
-    } catch (e) {
-      _log('Gateway reconnect failed: $e');
-    } finally {
-      _lionAutoDiscoverTransition = false;
-    }
+    _setStatus('Connected');
+    _log('Switching to LionCheck command set ($reason)');
   }
 
   Future<void> _poll() async {
     if (_writeChar == null) return;
     try {
-      if (_lionAutoDiscoverTransition) {
-        return;
-      }
-
-      // ── Gateway mode: overrides single/auto-discover ──────────────────
-      if (_gatewayMode && _gwPerms != null && !_gwDone) {
-        final perm = _gwPerms![_gwIndex];
-        _preferWriteWithoutResponse = !perm.withResponse;
-        final payload = ascii.encode(perm.command);
-        final preferred = _lionPreferredWrite();
-        _log(
-          'TX Lion ASCII ${perm.command} (${payload.length}b) '
-          'phase=gateway[$_gwIndex/${_gwPerms!.length - 1}]'
-          ' ${perm.charId}/${perm.withResponse ? "REQ" : "CMD"}',
-        );
-        try {
-          await _writeOnCandidates(payload, preferred: preferred, gatewayOnly: true);
-          _gwCurrentResult!.writesOk++;
-        } catch (_) {
-          _gwCurrentResult!.writesErr++;
-        }
-        _gwWriteCount++;
-        if (_gwWriteCount >= _gwWritesPerPerm) _gwMaybeAdvance();
-        return;
-      }
-
-      _lionPollCount++;
       if (_lionBurstPollsRemaining > 0) {
         _lionBurstPollsRemaining--;
-        if (_lionBurstPollsRemaining == 0 && _pollInterval != _lionSteadyPollInterval) {
+        if (_lionBurstPollsRemaining == 0 &&
+            _pollInterval != _lionSteadyPollInterval) {
           _restartPollTimer(_lionSteadyPollInterval);
           _log('Lion scheduler switched to steady cadence (5 writes/sec)');
         }
@@ -931,127 +553,33 @@ class BmsService {
 
       final asciiCommand = _nextLionAsciiCommand();
       final rawBytes = ascii.encode(asciiCommand);
-      // XOR-encode: LionCheck applies byte ^ key before writeCharacteristic.
-      final payload = Uint8List.fromList(rawBytes.map((b) => b ^ _lionXorKey).toList());
-      final preferred = _lionPreferredWrite();
-      final lionPhase = _lionSingleCommandMode
-        ? 'single-command'
-        : _lionFixedReplayMode
-          ? 'fixed-replay'
-          : (_lionBootstrapIndex < _lionBootstrapCommands.length ? 'bootstrap' : 'steady');
+      final payload =
+          Uint8List.fromList(rawBytes.map((b) => b ^ _lionXorKey).toList());
+      final lionPhase = _lionBootstrapIndex < _lionBootstrapCommands.length
+          ? 'bootstrap'
+          : 'steady';
       _log(
         'TX Lion ASCII $asciiCommand (${payload.length}b) '
         'phase=$lionPhase [XOR 0x${_lionXorKey.toRadixString(16).padLeft(2, '0').toUpperCase()}]',
       );
-      await _writeOnCandidates(payload, preferred: preferred);
-
-      _maybeAutoDiscoverRotate();
-
-      // The original app is notify-driven; keep reads as sparse fallback probes.
-      if (!_hasValidFrame && _lionPollCount % 20 == 0) {
-        await _readFromCandidates();
-      }
-    } catch (_) {
-      // Silently ignore poll errors (device may be temporarily busy)
-      _log('Polling failed');
+      await _writeLionPayload(payload);
+    } catch (e) {
+      _log('Polling failed: $e');
     }
   }
 
-  Future<void> _readFromCandidates() async {
-    final prioritizedReads = _readCandidates
-        .where((c) {
-          final short = _shortUuid(c.characteristicUuid.toString());
-          return short == 'fff6' || short == 'fff4';
-        })
-        .toList();
-    final activeReads = prioritizedReads.isNotEmpty ? prioritizedReads : _readCandidates;
-
-    for (final c in activeReads) {
-      try {
-        final value = await c.read();
-        if (value.isNotEmpty) {
-          _log('RX read ${c.characteristicUuid}: ${_hex(value)}');
-          _onData(value);
-        }
-      } catch (e) {
-        _log('Read failed on ${c.characteristicUuid}: $e');
-      }
+  Future<void> _writeLionPayload(List<int> payload) async {
+    final c = _lionPreferredWrite();
+    if (c == null) {
+      throw Exception('BMS write characteristic is not ready');
     }
-  }
-
-  Future<BluetoothCharacteristic> _writeOnCandidates(
-    List<int> payload, {
-    BluetoothCharacteristic? preferred,
-    bool gatewayOnly = false, // When true, only try `preferred` (no fallback).
-  }) async {
-    final primary = preferred ?? _writeChar;
-    final candidateOrder = <BluetoothCharacteristic>[];
-    if (primary != null) candidateOrder.add(primary);
-    if (!gatewayOnly) {
-      if (_altWriteChar != null && _altWriteChar != primary) {
-        candidateOrder.add(_altWriteChar!);
-      }
-      for (final c in _writeCandidates) {
-        if (!candidateOrder.contains(c)) {
-          candidateOrder.add(c);
-        }
-      }
-    }
-
-    Future<void> send(BluetoothCharacteristic c) async {
-      final canWriteWithResponse = c.properties.write;
-      final canWriteWithoutResponse = c.properties.writeWithoutResponse;
-      if (!canWriteWithResponse && !canWriteWithoutResponse) {
-        throw Exception('Characteristic ${c.characteristicUuid} is not writable');
-      }
-
-      final writeModes = <bool>[]; // true => withoutResponse
-      if (_preferWriteWithoutResponse) {
-        if (canWriteWithoutResponse) writeModes.add(true);
-        if (canWriteWithResponse) writeModes.add(false);
-      } else {
-        if (canWriteWithResponse) writeModes.add(false);
-        if (canWriteWithoutResponse) writeModes.add(true);
-      }
-
-      Object? lastError;
-      for (final withoutResponse in writeModes) {
-        try {
-          final modeText = withoutResponse ? 'withoutResponse' : 'withResponse';
-          _log('TX ${_hex(payload)} -> ${c.characteristicUuid} ($modeText)');
-          _lastTxPayload = List<int>.from(payload);
-          await c.write(payload, withoutResponse: withoutResponse);
-          return;
-        } catch (e) {
-          lastError = e;
-          final short = _shortUuid(c.characteristicUuid.toString());
-          final msg = e.toString();
-          if (short == 'fff3' && payload.length > 1 && msg.contains('android-code: 13')) {
-            _log('Marking fff3 as unsuitable for long writes after invalid-length error');
-          }
-          _log('Write mode failed on ${c.characteristicUuid}: $e');
-        }
-      }
-
-      throw Exception(lastError?.toString() ?? 'Write failed for all supported modes');
-    }
-
-    BluetoothCharacteristic? firstSuccess;
-
-    for (final candidate in candidateOrder) {
-      try {
-        await send(candidate);
-        firstSuccess ??= candidate;
-        break;
-      } catch (e) {
-        _log('Write failed on ${candidate.characteristicUuid}: $e');
-      }
-    }
-
-    if (firstSuccess != null) {
-      return firstSuccess;
-    }
-    throw Exception('No writable characteristic accepted payload');
+    final withoutResponse = c.properties.writeWithoutResponse;
+    _log(
+      'TX ${_hex(payload)} -> ${c.characteristicUuid} '
+      '(${withoutResponse ? "withoutResponse" : "withResponse"})',
+    );
+    _lastTxPayload = List<int>.from(payload);
+    await c.write(payload, withoutResponse: withoutResponse);
   }
 
   bool _listEquals(List<int> a, List<int> b) {
@@ -1076,9 +604,8 @@ class BmsService {
     if (actualNorm == expectedNorm) return true;
 
     // Compare by 16-bit short UUID (e.g. fff0/fff1/fff2).
-    final shortExpected = expectedNorm.length >= 8
-        ? expectedNorm.substring(4, 8)
-        : expectedNorm;
+    final shortExpected =
+        expectedNorm.length >= 8 ? expectedNorm.substring(4, 8) : expectedNorm;
     return actualNorm.endsWith(shortExpected) || actualNorm == shortExpected;
   }
 
@@ -1100,7 +627,7 @@ class BmsService {
     }
   }
 
-  Future<void> disconnect({bool keepGateway = false}) async {
+  Future<void> disconnect() async {
     _setStatus('Disconnecting');
     _pollTimer?.cancel();
     for (final sub in _notifySubs) {
@@ -1108,27 +635,20 @@ class BmsService {
     }
     _notifySubs.clear();
     _pollTimer = null;
-    try { await _device?.disconnect(); } catch (_) {}
+    try {
+      await _device?.disconnect();
+    } catch (_) {}
     _log('Disconnected from device');
     _setStatus('Disconnected');
     _writeChar = _notifyChar = _device = _lastBasic = null;
-    _altWriteChar = null;
     _altNotifyChar = null;
     _hasValidFrame = false;
     _echoFrameCount = 0;
-    _preferWriteWithoutResponse = true;
     _useLionCommandSet = false;
-    _smartBatNativeSeen = false;
     _lionBootstrapIndex = 0;
     _lionSteadyIndex = 0;
     _lionExtendedSweepIndex = -1;
     _lionSteadyLoopCount = 0;
-    _activeLionSingleCommand = _lionSingleCommand;
-    _lionAutoDiscoverIndex = 0;
-    _lionAutoDiscoverStartedAt = null;
-    _lionAutoDiscoverTransition = false;
-    _lionAutoDiscoverDoneLogged = false;
-    _lionPollCount = 0;
     _lionBurstPollsRemaining = 0;
     _lionCellVoltagesMv.clear();
     _lastTxPayload = null;
@@ -1141,13 +661,6 @@ class BmsService {
     _rxAsciiFrames = 0;
     _pollInterval = const Duration(seconds: 5);
     _buf.clear();
-    if (!keepGateway) {
-      _gwPerms = null;
-      _gwIndex = 0;
-      _gwWriteCount = 0;
-      _gwDone = false;
-      _gwCurrentResult = null;
-    }
   }
 
   void dispose() {
@@ -1155,43 +668,5 @@ class BmsService {
     _dataController.close();
     _statusController.close();
     _debugController.close();
-  }
-}
-
-// ── Gateway data classes ──────────────────────────────────────────────────────
-
-/// One test permutation: (command, BLE characteristic, write mode).
-class _GwPerm {
-  final String command;    // ASCII command e.g. '+RAA0802'
-  final String charId;     // Short UUID e.g. 'fff1', 'fff4', 'fff6'
-  final bool withResponse; // true = ATT_WRITE_REQ, false = ATT_WRITE_CMD
-
-  const _GwPerm(this.command, this.charId, {required this.withResponse});
-
-  String get label => '$command/$charId/${withResponse ? "REQ" : "CMD"}';
-}
-
-/// Accumulated RX counters for one permutation.
-class _GwResult {
-  int writesOk = 0;
-  int writesErr = 0;
-  int heartbeats = 0;
-  int echoes = 0;
-  int payloads = 0;
-  int unknowns = 0;
-  final List<String> frames = []; // first 3 unique non-HB/non-echo frames
-
-  void noteFrame(String hex) {
-    if (frames.length < 3 && !frames.contains(hex)) frames.add(hex);
-  }
-
-  String toLogLine(int idx, _GwPerm p) {
-    final fStr = frames.map((f) => '"$f"').join(',');
-    return 'GATEWAY_RESULT: {"i":$idx,"cmd":"${p.command}",'
-        '"char":"${p.charId}","wr":${p.withResponse},'
-        '"wok":$writesOk,"werr":$writesErr,'
-        '"hb":$heartbeats,"echo":$echoes,'
-        '"payload":$payloads,"unk":$unknowns,'
-        '"frames":[$fStr]}';
   }
 }

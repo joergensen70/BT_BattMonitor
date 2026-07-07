@@ -13,14 +13,14 @@ import 'recording_service.dart';
 import 'scan_screen.dart';
 
 // ── Design tokens (from dual_battery_app_spec.md §7) ────────────────────────
-const _kBg            = Color(0xFF0A0F14);
-const _kSurface       = Color(0xFF121A23);
-const _kSurfaceElev   = Color(0xFF182330);
-const _kAccent        = Color(0xFF35D07F);
-const _kInfo          = Color(0xFF4DB3FF);
-const _kWarning       = Color(0xFFFFB020);
-const _kCritical      = Color(0xFFFF5D5D);
-const _kTextPrimary   = Color(0xFFEAF2FF);
+const _kBg = Color(0xFF0A0F14);
+const _kSurface = Color(0xFF121A23);
+const _kSurfaceElev = Color(0xFF182330);
+const _kAccent = Color(0xFF35D07F);
+const _kInfo = Color(0xFF4DB3FF);
+const _kWarning = Color(0xFFFFB020);
+const _kCritical = Color(0xFFFF5D5D);
+const _kTextPrimary = Color(0xFFEAF2FF);
 const _kTextSecondary = Color(0xFF9FB0C8);
 
 enum _BatteryCardViewMode { status, cells }
@@ -31,7 +31,7 @@ class _BattSlot {
   BmsService? service;
   BatteryData? data;
   String status = '';
-  String savedName = '';  // fallback when platformName is empty (auto-reconnect)
+  String savedName = ''; // fallback when platformName is empty (auto-reconnect)
   DateTime? lastDataAt;
   List<String> logs = [];
   _BatteryCardViewMode viewMode = _BatteryCardViewMode.status;
@@ -41,6 +41,8 @@ class _BattSlot {
   StreamSubscription<String>? statusSub;
   StreamSubscription<String>? logSub;
   int connectEpoch = 0;
+  bool connectInProgress = false;
+  bool reconnectQueued = false;
 
   bool get isConnected => device != null;
   bool get hasData => data != null || lastDataAt != null;
@@ -48,20 +50,28 @@ class _BattSlot {
 
   /// Synchronous cancel — safe to call from dispose().
   void cancelAll() {
-    dataSub?.cancel(); dataSub = null;
-    connSub?.cancel(); connSub = null;
-    statusSub?.cancel(); statusSub = null;
-    logSub?.cancel(); logSub = null;
+    dataSub?.cancel();
+    dataSub = null;
+    connSub?.cancel();
+    connSub = null;
+    statusSub?.cancel();
+    statusSub = null;
+    logSub?.cancel();
+    logSub = null;
     service?.dispose();
     service = null;
   }
 
   /// Full async teardown — resets all state including device reference.
   Future<void> teardown() async {
-    dataSub?.cancel(); dataSub = null;
-    connSub?.cancel(); connSub = null;
-    statusSub?.cancel(); statusSub = null;
-    logSub?.cancel(); logSub = null;
+    dataSub?.cancel();
+    dataSub = null;
+    connSub?.cancel();
+    connSub = null;
+    statusSub?.cancel();
+    statusSub = null;
+    logSub?.cancel();
+    logSub = null;
     await service?.disconnect();
     service = null;
     device = null;
@@ -70,6 +80,8 @@ class _BattSlot {
     status = '';
     logs.clear();
     viewMode = _BatteryCardViewMode.status;
+    connectInProgress = false;
+    reconnectQueued = false;
   }
 }
 
@@ -81,7 +93,8 @@ class BatteryScreen extends StatefulWidget {
   State<BatteryScreen> createState() => _BatteryScreenState();
 }
 
-class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserver {
+class _BatteryScreenState extends State<BatteryScreen>
+    with WidgetsBindingObserver {
   final _slotA = _BattSlot();
   final _slotB = _BattSlot();
   final _debugLog = DebugLogService.instance;
@@ -100,7 +113,8 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   StreamSubscription<BatteryData>? _demoASub;
   StreamSubscription<BatteryData>? _demoBSub;
 
-  bool get _anyConnected => _slotA.isConnected || _slotB.isConnected || _demoMode;
+  bool get _anyConnected =>
+      _slotA.isConnected || _slotB.isConnected || _demoMode;
 
   String _slotTag(_BattSlot slot) => slot == _slotA ? 'A' : 'B';
 
@@ -123,23 +137,27 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
   static bool _isActivelyConnecting(String status) {
     final s = status.toLowerCase();
-    return s.contains('connecting') || s.contains('retrying') || s.contains('scanning');
+    return s.contains('connecting') ||
+        s.contains('retrying') ||
+        s.contains('scanning');
   }
 
-  static const _prefKeyA    = 'saved_mac_a';
-  static const _prefKeyB    = 'saved_mac_b';
-  static const _prefNameA   = 'saved_name_a';
-  static const _prefNameB   = 'saved_name_b';
+  static const _prefKeyA = 'saved_mac_a';
+  static const _prefKeyB = 'saved_mac_b';
+  static const _prefNameA = 'saved_name_a';
+  static const _prefNameB = 'saved_name_b';
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _autoReconnect();
-    _staleTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkStale());
+    _staleTimer =
+        Timer.periodic(const Duration(seconds: 10), (_) => _checkStale());
   }
 
-  Future<void> _saveSlot(String macKey, String nameKey, String? mac, String? name) async {
+  Future<void> _saveSlot(
+      String macKey, String nameKey, String? mac, String? name) async {
     final prefs = await SharedPreferences.getInstance();
     if (mac == null) {
       await prefs.remove(macKey);
@@ -153,8 +171,8 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   Future<void> _autoReconnect() async {
     if (_demoMode) return;
     final prefs = await SharedPreferences.getInstance();
-    final macA  = prefs.getString(_prefKeyA);
-    final macB  = prefs.getString(_prefKeyB);
+    final macA = prefs.getString(_prefKeyA);
+    final macB = prefs.getString(_prefKeyB);
     final nameA = prefs.getString(_prefNameA);
     final nameB = prefs.getString(_prefNameB);
     if (macA == null && macB == null) return;
@@ -167,12 +185,20 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     Future<void> trySlot(_BattSlot slot, String? mac, String? savedName) async {
       if (mac == null || _disposed || !mounted) return;
       BluetoothDevice? found;
-      try { found = connected.firstWhere((d) => d.remoteId.str == mac); } catch (_) {}
+      try {
+        found = connected.firstWhere((d) => d.remoteId.str == mac);
+      } catch (_) {}
       found ??= BluetoothDevice.fromId(mac);
-      final nameForKey = (found.platformName.isNotEmpty ? found.platformName : savedName) ?? '';
+      final nameForKey =
+          (found.platformName.isNotEmpty ? found.platformName : savedName) ??
+              '';
       await slot.teardown();
       if (!mounted) return;
-      setState(() { slot.status = 'Auto-connecting…'; slot.device = found; slot.savedName = nameForKey; });
+      setState(() {
+        slot.status = 'Auto-connecting…';
+        slot.device = found;
+        slot.savedName = nameForKey;
+      });
       slot.service = BmsService();
       if (nameForKey.isNotEmpty) slot.service!.overrideDeviceName(nameForKey);
       _attachStreams(slot);
@@ -207,29 +233,34 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _checkStale(force: true);
+      _checkStale();
     }
   }
 
-  void _checkStale({bool force = false}) {
+  void _checkStale() {
     if (_disposed || !mounted || _demoMode || _isSwitchingMode) return;
     for (final slot in [_slotA, _slotB]) {
       if (!slot.isConnected) continue;
       if (slot.lastDataAt == null) continue;
       final age = DateTime.now().difference(slot.lastDataAt!);
-      if (force || age > _staleThreshold) {
+      if (age > _staleThreshold) {
         _reconnectSlot(slot);
       }
     }
   }
 
-  Future<void> _reconnectSlot(_BattSlot slot) async {
+  Future<void> _reconnectSlot(_BattSlot slot,
+      {bool userRequested = false}) async {
     if (_disposed || !mounted || _demoMode || _isSwitchingMode) return;
+    if (slot.connectInProgress) return;
     final device = slot.device;
     final savedName = slot.savedName;
     if (device == null) return;
-    _pushSlotLog(slot, 'UI reconnect requested');
-    setState(() { slot.status = 'Reconnecting…'; slot.data = null; slot.lastDataAt = null; });
+    _pushSlotLog(slot,
+        userRequested ? 'UI reconnect requested' : 'Auto reconnect scheduled');
+    setState(() {
+      slot.status = slot.hasData ? 'Verbunden' : 'Verbinden…';
+    });
     await slot.service?.disconnect();
     slot.dataSub?.cancel();
     slot.connSub?.cancel();
@@ -240,11 +271,22 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     await _connect(slot);
   }
 
+  void _scheduleReconnect(_BattSlot slot) {
+    if (slot.reconnectQueued || slot.connectInProgress) return;
+    slot.reconnectQueued = true;
+    unawaited(Future<void>.delayed(_retryDelay, () {
+      slot.reconnectQueued = false;
+      if (!_disposed && mounted && !_demoMode && !_isSwitchingMode) {
+        unawaited(_reconnectSlot(slot));
+      }
+    }));
+  }
+
   Future<void> _refreshAllSlots() async {
     if (_demoMode || _isSwitchingMode) return;
     _debugLog.add('UI pull-to-refresh requested');
-    if (_slotA.isConnected) await _reconnectSlot(_slotA);
-    if (_slotB.isConnected) await _reconnectSlot(_slotB);
+    if (_slotA.isConnected) await _reconnectSlot(_slotA, userRequested: true);
+    if (_slotB.isConnected) await _reconnectSlot(_slotB, userRequested: true);
   }
 
   Future<void> _toggleDemoMode() async {
@@ -343,10 +385,11 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: _kTextSecondary.withValues(alpha: 0.4),
+                    color: _kTextSecondary.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2)),
               ),
               const Text('Select slot to connect',
@@ -365,11 +408,13 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
               ),
               const SizedBox(height: 16),
               Row(children: [
-                Expanded(child: _slotButton('Battery A', 'A',
-                    _slotA.isConnected ? _slotDisplayName(_slotA) : null)),
+                Expanded(
+                    child: _slotButton('Battery A', 'A',
+                        _slotA.isConnected ? _slotDisplayName(_slotA) : null)),
                 const SizedBox(width: 12),
-                Expanded(child: _slotButton('Battery B', 'B',
-                    _slotB.isConnected ? _slotDisplayName(_slotB) : null)),
+                Expanded(
+                    child: _slotButton('Battery B', 'B',
+                        _slotB.isConnected ? _slotDisplayName(_slotB) : null)),
               ]),
             ],
           ),
@@ -384,12 +429,15 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     );
     if (device == null || !mounted) return;
 
-    final slot    = slotChoice == 'A' ? _slotA : _slotB;
-    final macKey  = slotChoice == 'A' ? _prefKeyA : _prefKeyB;
+    final slot = slotChoice == 'A' ? _slotA : _slotB;
+    final macKey = slotChoice == 'A' ? _prefKeyA : _prefKeyB;
     final nameKey = slotChoice == 'A' ? _prefNameA : _prefNameB;
     await slot.teardown();
     if (!mounted) return;
-    setState(() { slot.status = 'Connecting…'; slot.device = device; });
+    setState(() {
+      slot.status = 'Verbinden…';
+      slot.device = device;
+    });
     await _saveSlot(macKey, nameKey, device.remoteId.str, device.platformName);
     slot.service = BmsService();
     _attachStreams(slot);
@@ -427,10 +475,22 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       setState(() {
         if (slot.hasData) {
           final l = s.toLowerCase();
-          if (l.contains('connecting') || l.contains('connected') ||
-              l.contains('discovering') || l.contains('waiting')) return;
+          if (l.contains('connecting') ||
+              l.contains('connected') ||
+              l.contains('discovering') ||
+              l.contains('waiting') ||
+              l.contains('data received') ||
+              l.contains('disconnecting') ||
+              l.contains('disconnected')) return;
         }
-        slot.status = s;
+        final l = s.toLowerCase();
+        if (l.contains('connect')) {
+          slot.status = 'Verbinden…';
+        } else if (l.contains('missing') || l.contains('failed')) {
+          slot.status = 'Keine Verbindung';
+        } else {
+          slot.status = s;
+        }
       });
       _debugLog.add('slot=${_slotTag(slot)} status=$s');
     });
@@ -438,85 +498,104 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       if (!mounted) return;
       setState(() {
         _pushSlotLog(slot, line);
-        if (!slot.hasData && line.startsWith('RX ')) {
-          slot.status = 'Connected – receiving…';
-        }
+        if (!slot.hasData && line.startsWith('RX ')) slot.status = 'Verbunden';
       });
     });
   }
 
   Future<void> _connect(_BattSlot slot) async {
-    slot.dataSub?.cancel();
-    slot.connSub?.cancel();
+    if (slot.connectInProgress) return;
+    slot.connectInProgress = true;
     final epoch = ++slot.connectEpoch;
 
-    bool isStale() {
-      return slot.connectEpoch != epoch ||
-          _disposed ||
-          !mounted ||
-          _demoMode ||
-          _isSwitchingMode ||
-          !slot.isConnected;
-    }
+    try {
+      slot.dataSub?.cancel();
+      slot.connSub?.cancel();
 
-    slot.connSub = slot.device!.connectionState.listen((state) async {
-      if (isStale()) return;
-      if (mounted && state == BluetoothConnectionState.disconnected && !_disposed) {
-        _pushSlotLog(slot, 'BLE connection state changed to disconnected');
-        await slot.service?.disconnect();
+      bool isStale() {
+        return slot.connectEpoch != epoch ||
+            _disposed ||
+            !mounted ||
+            _demoMode ||
+            _isSwitchingMode ||
+            !slot.isConnected;
+      }
+
+      slot.connSub = slot.device!.connectionState.listen((state) async {
         if (isStale()) return;
-        setState(() => slot.status = 'Disconnected');
-      }
-    });
-    slot.dataSub = slot.service!.dataStream.listen((d) {
-      if (isStale()) return;
-      if (mounted) setState(() {
-        slot.data = d;
-        slot.lastDataAt = DateTime.now();
-        slot.status = 'Data received';
-      });
-      if (slot == _slotA) {
-        ChartBuffer.instance.addA(d);
-        RecordingService.instance.addA(d);
-      } else {
-        ChartBuffer.instance.addB(d);
-        RecordingService.instance.addB(d);
-      }
-    });
-
-    for (int attempt = 1; attempt <= _maxRetries; attempt++) {
-      if (isStale()) return;
-      try {
-        if (attempt > 1) {
+        if (mounted &&
+            state == BluetoothConnectionState.disconnected &&
+            !_disposed) {
+          _pushSlotLog(slot, 'BLE connection state changed to disconnected');
+          await slot.service?.disconnect();
           if (isStale()) return;
-          if (mounted) setState(() => slot.status = 'Retrying ($attempt/$_maxRetries)…');
-          await Future.delayed(_retryDelay);
-          if (isStale()) return;
-          await slot.service!.disconnect();
-          await Future.delayed(const Duration(milliseconds: 500));
-          if (isStale()) return;
+          setState(() =>
+              slot.status = slot.hasData ? 'Verbunden' : 'Keine Verbindung');
+          if (!isStale()) _scheduleReconnect(slot);
         }
-        await slot.service!.connect(slot.device!)
-            .timeout(_connectTimeout, onTimeout: () {
-          throw TimeoutException('Connection timed out after ${_connectTimeout.inSeconds}s');
-        });
+      });
+
+      slot.dataSub = slot.service!.dataStream.listen((d) {
         if (isStale()) return;
-        if (mounted && !slot.hasData) setState(() => slot.status = 'Connected – waiting…');
-        return;
-      } catch (e) {
+        if (mounted) {
+          setState(() {
+            slot.data = d;
+            slot.lastDataAt = DateTime.now();
+            slot.status = 'Verbunden';
+          });
+        }
+        if (slot == _slotA) {
+          ChartBuffer.instance.addA(d);
+          RecordingService.instance.addA(d);
+        } else {
+          ChartBuffer.instance.addB(d);
+          RecordingService.instance.addB(d);
+        }
+      });
+
+      for (int attempt = 1; attempt <= _maxRetries; attempt++) {
         if (isStale()) return;
-        final isFinal = attempt == _maxRetries;
-        setState(() => slot.status = isFinal
-            ? 'Disconnected – out of range'
-            : 'Attempt $attempt failed, retrying…');
-        if (isFinal) return;
+        try {
+          if (attempt > 1) {
+            if (isStale()) return;
+            if (mounted && !slot.hasData) {
+              setState(() => slot.status = 'Verbinden...');
+            }
+            await Future.delayed(_retryDelay);
+            if (isStale()) return;
+            await slot.service!.disconnect();
+            await Future.delayed(const Duration(milliseconds: 500));
+            if (isStale()) return;
+          }
+          await slot.service!.connect(slot.device!).timeout(
+            _connectTimeout,
+            onTimeout: () {
+              throw TimeoutException(
+                'Connection timed out after ${_connectTimeout.inSeconds}s',
+              );
+            },
+          );
+          if (isStale()) return;
+          if (mounted && !slot.hasData) {
+            setState(() => slot.status = 'Warte auf Daten...');
+          }
+          return;
+        } catch (e) {
+          if (isStale()) return;
+          final isFinal = attempt == _maxRetries;
+          setState(() =>
+              slot.status = isFinal ? 'Keine Verbindung' : 'Verbinden...');
+          if (isFinal) return;
+        }
       }
+    } finally {
+      if (slot.connectEpoch == epoch) slot.connectInProgress = false;
     }
   }
 
   Future<void> _disconnectSlot(_BattSlot slot) async {
     _pushSlotLog(slot, 'UI disconnect requested');
-    final macKey  = slot == _slotA ? _prefKeyA : _prefKeyB;
+    final macKey = slot == _slotA ? _prefKeyA : _prefKeyB;
     final nameKey = slot == _slotA ? _prefNameA : _prefNameB;
     slot.connectEpoch++;
 
@@ -541,7 +620,7 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
   Future<void> _refreshSlot(_BattSlot slot) async {
     _pushSlotLog(slot, 'UI slot refresh requested');
-    await _reconnectSlot(slot);
+    await _reconnectSlot(slot, userRequested: true);
   }
 
   void _setSlotViewMode(_BattSlot slot, _BatteryCardViewMode mode) {
@@ -648,7 +727,8 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                 children: [
                   Text('Odin SmartBat',
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   Text(_kAppVersion,
                       style: TextStyle(fontSize: 9, color: Colors.white54)),
                 ],
@@ -658,7 +738,8 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             GestureDetector(
               onTap: _toggleDemoMode,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   gradient: _demoMode
                       ? LinearGradient(colors: [_kWarning, Colors.orangeAccent])
@@ -707,7 +788,9 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   Widget _buildIdle() {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Image.asset('assets/Odin_Kopf.png', width: 80, height: 80,
+        Image.asset('assets/Odin_Kopf.png',
+            width: 80,
+            height: 80,
             color: _kTextSecondary.withValues(alpha: 0.3),
             colorBlendMode: BlendMode.modulate),
         const SizedBox(height: 24),
@@ -764,11 +847,11 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(_kFrameGap),
           child: Column(children: [
-            _buildBatteryCard(_slotA, 'Battery A',
-                _isRefreshingA, (v) => setState(() => _isRefreshingA = v)),
+            _buildBatteryCard(_slotA, 'Battery A', _isRefreshingA,
+                (v) => setState(() => _isRefreshingA = v)),
             if (_slotB.isConnected) const SizedBox(height: _kFrameGap),
-            _buildBatteryCard(_slotB, 'Battery B',
-                _isRefreshingB, (v) => setState(() => _isRefreshingB = v)),
+            _buildBatteryCard(_slotB, 'Battery B', _isRefreshingB,
+                (v) => setState(() => _isRefreshingB = v)),
             if (bothHaveData) ...[
               const SizedBox(height: _kFrameGap),
               _buildSummaryStrip(_slotA.data!, _slotB.data!),
@@ -794,13 +877,19 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
           color: _kSurfaceElev,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Row(children: [
-            Text(label, style: const TextStyle(
-                color: _kTextSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-            const SizedBox(width: 8),
-            Expanded(child: Text(name,
-                overflow: TextOverflow.ellipsis,
+            Text(label,
                 style: const TextStyle(
-                    color: _kTextPrimary, fontSize: 13, fontWeight: FontWeight.bold))),
+                    color: _kTextSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(width: 8),
+            Expanded(
+                child: Text(name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: _kTextPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold))),
             if (slot.status.isNotEmpty && slot.data == null)
               Text(slot.status,
                   style: const TextStyle(color: _kTextSecondary, fontSize: 11)),
@@ -810,36 +899,45 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
             ],
             const SizedBox(width: 4),
             InkWell(
-              onTap: isRefreshing ? null : () async {
-                setRefreshing(true);
-                await _refreshSlot(slot);
-                setRefreshing(false);
-              },
+              onTap: isRefreshing
+                  ? null
+                  : () async {
+                      setRefreshing(true);
+                      await _refreshSlot(slot);
+                      setRefreshing(false);
+                    },
               child: isRefreshing
-                  ? const SizedBox(width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: _kAccent))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: _kAccent))
                   : const Icon(Icons.refresh, size: 18, color: _kTextSecondary),
             ),
             const SizedBox(width: 8),
             InkWell(
               onTap: () => _showSlotInfoSheet(slot),
-              child: const Icon(Icons.info_outline, size: 18, color: _kTextSecondary),
+              child: const Icon(Icons.info_outline,
+                  size: 18, color: _kTextSecondary),
             ),
             const SizedBox(width: 8),
             InkWell(
               onTap: () => _disconnectSlot(slot),
-              child: const Icon(Icons.bluetooth_disabled, size: 18, color: _kCritical),
+              child: const Icon(Icons.bluetooth_disabled,
+                  size: 18, color: _kCritical),
             ),
           ]),
         ),
-
         if (slot.data == null)
           Padding(
             padding: const EdgeInsets.all(20),
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               if (_isActivelyConnecting(slot.status)) ...[
-                const SizedBox(width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: _kAccent)),
+                const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: _kAccent)),
                 const SizedBox(width: 14),
               ],
               Text(slot.status,
@@ -862,7 +960,11 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
   }
 
   Widget _buildStatusView(_BattSlot slot, BatteryData d) {
-    final Color socColor = d.soc > 60 ? _kAccent : d.soc > 25 ? _kWarning : _kCritical;
+    final Color socColor = d.soc > 60
+        ? _kAccent
+        : d.soc > 25
+            ? _kWarning
+            : _kCritical;
     final IconData statusIcon = d.isCharging
         ? Icons.bolt
         : d.isDischarging
@@ -872,71 +974,87 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
     String? timeHint;
     if (d.isCharging && (d.attfMin ?? 0) > 0 && d.attfMin != 65535) {
-      final h = d.attfMin! ~/ 60; final m = d.attfMin! % 60;
+      final h = d.attfMin! ~/ 60;
+      final m = d.attfMin! % 60;
       timeHint = h > 0 ? 'CHG  ${h}h ${m}min to full' : 'CHG  ${m}min to full';
     } else if (d.isDischarging && (d.atteMin ?? 0) > 0 && d.atteMin != 65535) {
-      final h = d.atteMin! ~/ 60; final m = d.atteMin! % 60;
+      final h = d.atteMin! ~/ 60;
+      final m = d.atteMin! % 60;
       timeHint = h > 0 ? 'DSC  ${h}h ${m}min left' : 'DSC  ${m}min left';
     }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          SizedBox(width: 95, height: 95,
-            child: CustomPaint(
-              painter: _GaugePainter(d.soc / 100.0, socColor),
-              child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text('${d.soc}%',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal,
-                        color: socColor)),
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: Center(
-                    child: Icon(
-                      statusIcon,
-                      size: 14,
-                      color: statusIconColor,
-                    ),
+      Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        SizedBox(
+          width: 95,
+          height: 95,
+          child: CustomPaint(
+            painter: _GaugePainter(d.soc / 100.0, socColor),
+            child: Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('${d.soc}%',
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.normal,
+                      color: socColor)),
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: Center(
+                  child: Icon(
+                    statusIcon,
+                    size: 14,
+                    color: statusIconColor,
                   ),
                 ),
-              ])),
-            ),
+              ),
+            ])),
           ),
-          const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            _inlineStatRow('Voltage', '${d.voltage.toStringAsFixed(3)} V',
-                Icons.flash_on, Colors.yellow),
-            const SizedBox(height: 4),
-            _inlineStatRow('Current',
-                '${d.current >= 0 ? '+' : ''}${d.current.toStringAsFixed(3)} A',
-                Icons.compare_arrows, d.isCharging ? _kAccent : _kInfo),
-            const SizedBox(height: 4),
-            _inlineStatRow('Power', '${d.power.toStringAsFixed(1)} W',
-                Icons.bolt, _kWarning),
-            const SizedBox(height: 4),
-            _inlineStatRow('Cycles', '${d.cycles}',
-                Icons.loop, Colors.purpleAccent),
-          ])),
-        ]),
-
-        const SizedBox(height: 4),
-        Text(
-          timeHint == null
-              ? '${d.remainingAh.toStringAsFixed(1)} Ah  /  ${d.nominalAh.toStringAsFixed(1)} Ah'
-              : '${d.remainingAh.toStringAsFixed(1)} Ah  /  ${d.nominalAh.toStringAsFixed(1)} Ah   •   $timeHint',
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: _kTextSecondary, fontSize: 11),
         ),
-
-        if (d.temperatures.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Wrap(spacing: 6, runSpacing: 2,
+        const SizedBox(width: 10),
+        Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+              _inlineStatRow('Voltage', '${d.voltage.toStringAsFixed(3)} V',
+                  Icons.flash_on, Colors.yellow),
+              const SizedBox(height: 4),
+              _inlineStatRow(
+                  'Current',
+                  '${d.current >= 0 ? '+' : ''}${d.current.toStringAsFixed(3)} A',
+                  Icons.compare_arrows,
+                  d.isCharging ? _kAccent : _kInfo),
+              const SizedBox(height: 4),
+              _inlineStatRow('Power', '${d.power.toStringAsFixed(1)} W',
+                  Icons.bolt, _kWarning),
+              const SizedBox(height: 4),
+              _inlineStatRow(
+                  'Cycles', '${d.cycles}', Icons.loop, Colors.purpleAccent),
+            ])),
+      ]),
+      const SizedBox(height: 4),
+      Text(
+        timeHint == null
+            ? '${d.remainingAh.toStringAsFixed(1)} Ah  /  ${d.nominalAh.toStringAsFixed(1)} Ah'
+            : '${d.remainingAh.toStringAsFixed(1)} Ah  /  ${d.nominalAh.toStringAsFixed(1)} Ah   •   $timeHint',
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: _kTextSecondary, fontSize: 11),
+      ),
+      if (d.temperatures.isNotEmpty) ...[
+        const SizedBox(height: 6),
+        Wrap(
+            spacing: 6,
+            runSpacing: 2,
             children: d.temperatures.asMap().entries.map((e) {
               final degC = e.value;
               final degF = ((degC * 1.8 + 32.0) * 10).round() / 10.0;
-              final color = degC > 45 ? _kCritical : degC > 35 ? _kWarning : _kAccent;
+              final color = degC > 45
+                  ? _kCritical
+                  : degC > 35
+                      ? _kWarning
+                      : _kAccent;
               return Chip(
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 backgroundColor: _kSurfaceElev,
@@ -946,17 +1064,16 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                     style: TextStyle(color: color, fontSize: 12)),
               );
             }).toList()),
-        ],
-
-        if (d.activeProtections.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          ...d.activeProtections.map((p) => Row(children: [
-            const Icon(Icons.circle, size: 6, color: _kCritical),
-            const SizedBox(width: 6),
-            Text(p, style: const TextStyle(color: _kCritical, fontSize: 13)),
-          ])),
-        ],
-      ]);
+      ],
+      if (d.activeProtections.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        ...d.activeProtections.map((p) => Row(children: [
+              const Icon(Icons.circle, size: 6, color: _kCritical),
+              const SizedBox(width: 6),
+              Text(p, style: const TextStyle(color: _kCritical, fontSize: 13)),
+            ])),
+      ],
+    ]);
   }
 
   Widget _buildCellsView(_BattSlot slot, BatteryData d) {
@@ -968,14 +1085,18 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
           const Icon(Icons.grid_view_rounded, size: 34, color: _kTextSecondary),
           const SizedBox(height: 10),
           const Text('No cell data available',
-              style: TextStyle(color: _kTextPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+              style: TextStyle(
+                  color: _kTextPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           const Text('This battery currently exposes pack-level values only.',
               textAlign: TextAlign.center,
               style: TextStyle(color: _kTextSecondary, fontSize: 12)),
           const SizedBox(height: 12),
           TextButton.icon(
-            onPressed: () => _setSlotViewMode(slot, _BatteryCardViewMode.status),
+            onPressed: () =>
+                _setSlotViewMode(slot, _BatteryCardViewMode.status),
             icon: const Icon(Icons.arrow_back, size: 16),
             label: const Text('Back to status'),
           ),
@@ -994,7 +1115,10 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
         const Icon(Icons.grid_view_rounded, color: _kAccent, size: 15),
         const SizedBox(width: 6),
         const Text('Cell details',
-            style: TextStyle(color: _kTextPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                color: _kTextPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600)),
         const Spacer(),
         TextButton.icon(
           onPressed: () => _setSlotViewMode(slot, _BatteryCardViewMode.status),
@@ -1010,27 +1134,39 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       ]),
       const SizedBox(height: 8),
       Row(children: [
-        Expanded(child: _cellsStatChip('Min', '${(minV * 1000).round()} mV', _kCritical)),
+        Expanded(
+            child: _cellsStatChip(
+                'Min', '${(minV * 1000).round()} mV', _kCritical)),
         const SizedBox(width: 6),
-        Expanded(child: _cellsStatChip('Max', '${(maxV * 1000).round()} mV', _kAccent)),
+        Expanded(
+            child:
+                _cellsStatChip('Max', '${(maxV * 1000).round()} mV', _kAccent)),
         const SizedBox(width: 6),
-        Expanded(child: _cellsStatChip('Delta', '$deltaMv mV',
-            deltaMv > 50 ? _kWarning : _kInfo)),
+        Expanded(
+            child: _cellsStatChip(
+                'Delta', '$deltaMv mV', deltaMv > 50 ? _kWarning : _kInfo)),
       ]),
       const SizedBox(height: 6),
       Row(children: [
-        Expanded(child: _cellsStatChip('Average', '${avgV.toStringAsFixed(3)} V', _kTextPrimary)),
+        Expanded(
+            child: _cellsStatChip(
+                'Average', '${avgV.toStringAsFixed(3)} V', _kTextPrimary)),
         const SizedBox(width: 6),
-        Expanded(child: _cellsStatChip('Pack', '${d.voltage.toStringAsFixed(3)} V', _kWarning)),
+        Expanded(
+            child: _cellsStatChip(
+                'Pack', '${d.voltage.toStringAsFixed(3)} V', _kWarning)),
         const SizedBox(width: 6),
-        Expanded(child: _cellsStatChip('Count', '${voltages.length}', _kTextSecondary)),
+        Expanded(
+            child:
+                _cellsStatChip('Count', '${voltages.length}', _kTextSecondary)),
       ]),
       const SizedBox(height: 8),
       _buildCellsCompact(d, expanded: true),
     ]);
   }
 
-  Widget _inlineStatRow(String label, String value, IconData icon, Color color) {
+  Widget _inlineStatRow(
+      String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -1038,10 +1174,14 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       child: Row(children: [
         Icon(icon, size: 14, color: color),
         const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 11, color: _kTextSecondary)),
+        Text(label,
+            style: const TextStyle(fontSize: 11, color: _kTextSecondary)),
         const Spacer(),
-        Text(value, style: const TextStyle(
-            fontSize: 14, fontWeight: FontWeight.bold, color: _kTextPrimary)),
+        Text(value,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: _kTextPrimary)),
       ]),
     );
   }
@@ -1069,7 +1209,8 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: selected ? _kAccent.withValues(alpha: 0.18) : Colors.transparent,
+          color:
+              selected ? _kAccent.withValues(alpha: 0.18) : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(label,
@@ -1090,11 +1231,13 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: _kTextSecondary)),
+        Text(label,
+            style: const TextStyle(fontSize: 10, color: _kTextSecondary)),
         const SizedBox(height: 2),
         Text(value,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+            style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w700, color: color)),
       ]),
     );
   }
@@ -1109,10 +1252,12 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
         Row(children: [
           const Icon(Icons.grid_view, color: _kAccent, size: 14),
           const SizedBox(width: 4),
-          const Text('Cells', style: TextStyle(color: _kTextSecondary, fontSize: 12)),
+          const Text('Cells',
+              style: TextStyle(color: _kTextSecondary, fontSize: 12)),
           const Spacer(),
           Text('Δ $deltaMs mV',
-              style: TextStyle(fontSize: 11,
+              style: TextStyle(
+                  fontSize: 11,
                   color: deltaMs > 50 ? _kWarning : _kTextSecondary)),
         ]),
         const SizedBox(height: 4),
@@ -1136,20 +1281,31 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
               color: _kSurfaceElev,
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                  color: isMin ? _kCritical : isMax ? _kAccent : Colors.transparent,
+                  color: isMin
+                      ? _kCritical
+                      : isMax
+                          ? _kAccent
+                          : Colors.transparent,
                   width: 1.5),
             ),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            child:
+                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               Text('C${i + 1}',
                   style: const TextStyle(fontSize: 9, color: _kTextSecondary)),
               Text('${(v * 1000).round()}',
                   style: const TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.bold, color: _kTextPrimary)),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: _kTextPrimary)),
               if (expanded)
                 Text('${v.toStringAsFixed(3)} V',
                     style: TextStyle(
                         fontSize: 9,
-                        color: isMin ? _kCritical : isMax ? _kAccent : _kTextSecondary)),
+                        color: isMin
+                            ? _kCritical
+                            : isMax
+                                ? _kAccent
+                                : _kTextSecondary)),
             ]),
           );
         },
@@ -1159,25 +1315,31 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
   Widget _buildSummaryStrip(BatteryData a, BatteryData b) {
     final totalRemainingAh = a.remainingAh + b.remainingAh;
-    final totalNominalAh   = a.nominalAh   + b.nominalAh;
-    final totalCurrent     = a.current     + b.current;
-    final powerA           = a.voltage * a.current;
-    final powerB           = b.voltage * b.current;
-    final totalPower       = powerA.clamp(double.negativeInfinity, 0.0).abs()
-                           + powerB.clamp(double.negativeInfinity, 0.0).abs();
-    final combinedSoc      = totalNominalAh > 0
-        ? (totalRemainingAh / totalNominalAh * 100).round() : 0;
-    final isCharging    = totalCurrent > 0.1;
+    final totalNominalAh = a.nominalAh + b.nominalAh;
+    final totalCurrent = a.current + b.current;
+    final powerA = a.voltage * a.current;
+    final powerB = b.voltage * b.current;
+    final totalPower = powerA.clamp(double.negativeInfinity, 0.0).abs() +
+        powerB.clamp(double.negativeInfinity, 0.0).abs();
+    final combinedSoc = totalNominalAh > 0
+        ? (totalRemainingAh / totalNominalAh * 100).round()
+        : 0;
+    final isCharging = totalCurrent > 0.1;
     final isDischarging = totalCurrent < -0.1;
-    final vDelta        = (a.voltage - b.voltage).abs();
-    final vDeltaColor   = vDelta > 0.2 ? _kCritical : vDelta > 0.05 ? _kWarning : _kAccent;
+    final vDelta = (a.voltage - b.voltage).abs();
+    final vDeltaColor = vDelta > 0.2
+        ? _kCritical
+        : vDelta > 0.05
+            ? _kWarning
+            : _kAccent;
 
     double cellSpread(List<double> voltages) {
       if (voltages.length < 2) return 0.0;
       return voltages.reduce(max) - voltages.reduce(min);
     }
 
-    final maxSpread = max(cellSpread(a.cellVoltages), cellSpread(b.cellVoltages));
+    final maxSpread =
+        max(cellSpread(a.cellVoltages), cellSpread(b.cellVoltages));
     final spreadColor = maxSpread > 0.080
         ? _kCritical
         : maxSpread > 0.030
@@ -1191,48 +1353,76 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       color: _kSurfaceElev,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             const Icon(Icons.summarize, color: _kInfo, size: 16),
             const SizedBox(width: 6),
-            const Text('Combined', style: TextStyle(
-                color: _kTextPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+            const Text('Combined',
+                style: TextStyle(
+                    color: _kTextPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14)),
             const Spacer(),
             Text('$combinedSoc%',
                 style: TextStyle(
-                    color: combinedSoc > 60 ? _kAccent
-                        : combinedSoc > 25 ? _kWarning : _kCritical,
+                    color: combinedSoc > 60
+                        ? _kAccent
+                        : combinedSoc > 25
+                            ? _kWarning
+                            : _kCritical,
                     fontWeight: FontWeight.bold,
                     fontSize: 16)),
           ]),
           const SizedBox(height: 6),
           Row(children: [
-            Expanded(child: _summaryCell('Capacity',
-                '${totalRemainingAh.toStringAsFixed(1)} / ${totalNominalAh.toStringAsFixed(1)} Ah',
-                Icons.battery_full, _kAccent)),
+            Expanded(
+                child: _summaryCell(
+                    'Capacity',
+                    '${totalRemainingAh.toStringAsFixed(1)} / ${totalNominalAh.toStringAsFixed(1)} Ah',
+                    Icons.battery_full,
+                    _kAccent)),
             const SizedBox(width: 8),
-            Expanded(child: _summaryCell('Current',
-                '${totalCurrent >= 0 ? '+' : ''}${totalCurrent.toStringAsFixed(2)} A',
-                Icons.compare_arrows,
-                isCharging ? _kAccent : isDischarging ? _kInfo : _kTextSecondary)),
+            Expanded(
+                child: _summaryCell(
+                    'Current',
+                    '${totalCurrent >= 0 ? '+' : ''}${totalCurrent.toStringAsFixed(2)} A',
+                    Icons.compare_arrows,
+                    isCharging
+                        ? _kAccent
+                        : isDischarging
+                            ? _kInfo
+                            : _kTextSecondary)),
             const SizedBox(width: 8),
-            Expanded(child: _summaryCell('Power',
-                '${totalPower.toStringAsFixed(1)} W',
-                Icons.bolt, _kWarning)),
+            Expanded(
+                child: _summaryCell(
+                    'Power',
+                    '${totalPower.toStringAsFixed(1)} W',
+                    Icons.bolt,
+                    _kWarning)),
           ]),
           const SizedBox(height: 4),
           Row(children: [
-            Expanded(child: _summaryCell('ΔV A↔B',
-                '${(vDelta * 1000).toStringAsFixed(0)} mV',
-                Icons.balance, vDeltaColor)),
+            Expanded(
+                child: _summaryCell(
+                    'ΔV A↔B',
+                    '${(vDelta * 1000).toStringAsFixed(0)} mV',
+                    Icons.balance,
+                    vDeltaColor)),
             const SizedBox(width: 8),
-            Expanded(child: _summaryCell('Cell spread',
-                '${(maxSpread * 1000).toStringAsFixed(0)} mV',
-                Icons.grid_view, spreadColor)),
+            Expanded(
+                child: _summaryCell(
+                    'Cell spread',
+                    '${(maxSpread * 1000).toStringAsFixed(0)} mV',
+                    Icons.grid_view,
+                    spreadColor)),
             const SizedBox(width: 8),
-            Expanded(child: _summaryCell('Voltage A/B',
-                '${a.voltage.toStringAsFixed(2)} / ${b.voltage.toStringAsFixed(2)} V',
-                Icons.compare, _kTextSecondary)),
+            Expanded(
+                child: _summaryCell(
+                    'Voltage A/B',
+                    '${a.voltage.toStringAsFixed(2)} / ${b.voltage.toStringAsFixed(2)} V',
+                    Icons.compare,
+                    _kTextSecondary)),
           ]),
         ]),
       ),
@@ -1248,11 +1438,13 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
         Row(children: [
           Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
-          Text(label, style: const TextStyle(fontSize: 10, color: _kTextSecondary)),
+          Text(label,
+              style: const TextStyle(fontSize: 10, color: _kTextSecondary)),
         ]),
         const SizedBox(height: 4),
         Text(value,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.bold, color: color),
             overflow: TextOverflow.ellipsis),
       ]),
     );
@@ -1260,7 +1452,8 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
 
   void _showSlotInfoSheet(_BattSlot slot) {
     final deviceId = slot.device?.remoteId.toString() ?? '—';
-    final lastData = slot.lastDataAt == null ? 'No data yet' : _timeLabel(slot.lastDataAt!);
+    final lastData =
+        slot.lastDataAt == null ? 'No data yet' : _timeLabel(slot.lastDataAt!);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: _kSurface,
@@ -1268,28 +1461,37 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => DraggableScrollableSheet(
-        expand: false, initialChildSize: 0.55, maxChildSize: 0.92,
+        expand: false,
+        initialChildSize: 0.55,
+        maxChildSize: 0.92,
         builder: (_, scrollController) => ListView(
           controller: scrollController,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            Center(child: Container(
-              width: 40, height: 4,
+            Center(
+                child: Container(
+              width: 40,
+              height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-              color: _kTextSecondary.withValues(alpha: 0.4),
+                  color: _kTextSecondary.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(2)),
             )),
-            _infoRow('Device', slot.device?.platformName.isNotEmpty == true
-                ? slot.device!.platformName : '—'),
+            _infoRow(
+                'Device',
+                slot.device?.platformName.isNotEmpty == true
+                    ? slot.device!.platformName
+                    : '—'),
             _infoRow('MAC', deviceId),
             _infoRow('Status', slot.status),
             _infoRow('Last update', lastData),
             const SizedBox(height: 16),
             Row(children: [
               const Text('BLE / Protocol Log',
-                  style: TextStyle(color: _kTextPrimary,
-                      fontWeight: FontWeight.bold, fontSize: 14)),
+                  style: TextStyle(
+                      color: _kTextPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14)),
               const Spacer(),
               TextButton.icon(
                 onPressed: _shareDebugLog,
@@ -1307,12 +1509,13 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
                   style: TextStyle(color: _kTextSecondary, fontSize: 12))
             else
               ...slot.logs.map((line) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(line,
-                    style: const TextStyle(
-                        color: _kTextSecondary, fontSize: 11,
-                        fontFamily: 'monospace')),
-              )),
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(line,
+                        style: const TextStyle(
+                            color: _kTextSecondary,
+                            fontSize: 11,
+                            fontFamily: 'monospace')),
+                  )),
           ],
         ),
       ),
@@ -1323,12 +1526,16 @@ class _BatteryScreenState extends State<BatteryScreen> with WidgetsBindingObserv
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 100,
+        SizedBox(
+            width: 100,
             child: Text(label,
                 style: const TextStyle(color: _kTextSecondary, fontSize: 13))),
-        Expanded(child: Text(value,
-            style: const TextStyle(
-                color: _kTextPrimary, fontSize: 13, fontFamily: 'monospace'))),
+        Expanded(
+            child: Text(value,
+                style: const TextStyle(
+                    color: _kTextPrimary,
+                    fontSize: 13,
+                    fontFamily: 'monospace'))),
       ]),
     );
   }
@@ -1360,8 +1567,8 @@ class _GaugePainter extends CustomPainter {
       ..strokeWidth = 14
       ..strokeCap = StrokeCap.round;
 
-    const startAngle = pi * 0.75;       // 135°
-    const sweepFull  = pi * 1.5;        // 270° total arc
+    const startAngle = pi * 0.75; // 135°
+    const sweepFull = pi * 1.5; // 270° total arc
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
