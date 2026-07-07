@@ -107,7 +107,7 @@ class _BatteryScreenState extends State<BatteryScreen>
   static const Duration _retryDelay = Duration(seconds: 3);
   static const Duration _connectTimeout = Duration(seconds: 15);
   static const Duration _staleThreshold = Duration(seconds: 30);
-  static const String _kAppVersion = 'v1.3.4';
+  static const String _kAppVersion = 'v1.3.6';
   static const double _kFrameGap = 4.0;
   Timer? _staleTimer;
   StreamSubscription<BatteryData>? _demoASub;
